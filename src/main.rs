@@ -1,6 +1,6 @@
 #![no_std]
 #![no_main]
-#![windows_subsystem = "windows"]
+#![windows_subsystem = "console"]
 
 use windows_sys::Win32::Networking::WinSock::SOCKET_ERROR;
 use windows_sys::Win32::System::Threading::ExitProcess;
@@ -10,7 +10,7 @@ use windows_sys::Win32::System::Threading::ExitProcess;
 fn mainCRTStartup() -> ! {
     unsafe {
         viewlake::log_to_console("starting http request...\n");
-        let received = viewlake::send_http_request("example.com", "/");
+        let received = viewlake::send_http_request("ya.ru", "/");
         if received == SOCKET_ERROR {
             viewlake::log_to_console("Request failed\n");
         } else {

@@ -3,8 +3,10 @@
 use core::mem::zeroed;
 use core::panic::PanicInfo;
 
+use core::ffi::c_void;
 use core::ptr::copy_nonoverlapping;
 use windows_sys::Win32::Networking::WinSock::*;
+use windows_sys::Win32::System::Console::{GetStdHandle, STD_OUTPUT_HANDLE, WriteConsoleA};
 use windows_sys::Win32::System::Threading::ExitProcess;
 
 #[panic_handler]
