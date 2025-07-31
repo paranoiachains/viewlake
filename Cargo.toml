@@ -10,6 +10,7 @@ windows-sys = { version = "0.52.0", features = [
     "Win32_System_Console",
     "Win32_Networking_WinSock"# for `WriteConsoleA` etc.
 ] }
+compiler_builtins = { version = "0.1.101", features = ["mem"] }
 
 [profile.dev]
 panic = "abort"
