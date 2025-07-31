@@ -10,13 +10,13 @@ use windows_sys::Win32::System::Threading::ExitProcess;
 fn mainCRTStartup() -> ! {
     unsafe {
         viewlake::log_to_console("starting http request...\n");
-        let received = viewlake::send_http_request("ya.ru", "/");
+        let (received, buffer) = viewlake::send_http_request("ya.ru", "/");
         if received == SOCKET_ERROR {
             viewlake::log_to_console("Request failed\n");
         } else {
             viewlake::log_to_console("Request succeeded\n");
+            viewlake::log_bytes_to_console(&buffer[..received as usize]);
         }
-
         ExitProcess(0);
     }
 }

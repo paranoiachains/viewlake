@@ -17,9 +17,6 @@ pub fn panic(_: &PanicInfo<'_>) -> ! {
     }
 }
 
-pub fn makeword(low: u8, high: u8) -> u16 {
-    (low as u16) | ((high as u16) << 8)
-}
 #[cfg(feature = "logging")]
 pub fn log_to_console(s: &str) {
     unsafe {
@@ -76,9 +73,9 @@ pub fn resolve_domain(domain: &str) -> core::option::Option<SOCKADDR_IN> {
     }
 }
 
-pub fn send_http_request(domain: &str, path: &str) -> i32 {
+pub fn send_http_request(domain: &str, path: &str) -> (i32, [u8; 512]) {
     unsafe {
-        if WSAStartup(makeword(2, 2), &mut zeroed()) != 0 {
+        if WSAStartup((2u16) | (2u16 << 8), &mut zeroed()) != 0 {
             log_to_console("WSAStartup failed\n");
             ExitProcess(1);
         }
@@ -135,7 +132,22 @@ pub fn send_http_request(domain: &str, path: &str) -> i32 {
         closesocket(sock);
         WSACleanup();
 
-        received
+        (received, buffer)
+    }
+}
+
+pub fn log_bytes_to_console(bytes: &[u8]) {
+    unsafe {
+        let console = GetStdHandle(STD_OUTPUT_HANDLE);
+        // WriteConsoleA needs length as u32
+        let mut written = 0u32;
+        let _ = WriteConsoleA(
+            console,
+            bytes.as_ptr() as *const c_void,
+            bytes.len() as u32,
+            &mut written as *mut u32,
+            core::ptr::null_mut(),
+        );
     }
 }
 
