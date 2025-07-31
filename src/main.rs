@@ -1,3 +1,6 @@
+#![no_std]
+#![no_main]
+
 use viewlake::*;
 use windows_sys::Win32::Networking::WinSock::SOCKET_ERROR;
 use windows_sys::Win32::System::Threading::ExitProcess;
