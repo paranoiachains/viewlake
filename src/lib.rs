@@ -46,7 +46,7 @@ unsafe fn resolve_domain(domain: &str) -> core::option::Option<SOCKADDR_IN> {
         let len = domain_bytes.len();
 
         if len + 1 > buffer.len() {
-            return core::option::Option::core::option::Option::None;
+            return core::option::Option::None;
         }
 
         buffer[..len].copy_from_slice(domain_bytes);
