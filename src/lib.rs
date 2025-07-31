@@ -135,7 +135,7 @@ pub fn send_http_request(domain: &str, path: &str) -> i32 {
     }
 }
 
-fn alloc_http_request_no_alloc<'a>(domain: &str, path: &str, buffer: &'a mut [u8]) -> &'a [u8] {
+pub fn alloc_http_request_no_alloc<'a>(domain: &str, path: &str, buffer: &'a mut [u8]) -> &'a [u8] {
     let mut offset = 0;
 
     // Helper to write a string into the buffer
