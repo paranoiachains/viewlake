@@ -4,12 +4,8 @@
 
 use core::mem::zeroed;
 use core::panic::PanicInfo;
-<<<<<<< HEAD
-=======
-
 
 use core::ptr::copy_nonoverlapping;
->>>>>>> e537a20 (get rid of memcpy func)
 use windows_sys::Win32::Networking::WinSock::*;
 use windows_sys::Win32::System::Threading::ExitProcess;
 
