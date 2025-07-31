@@ -1,5 +1,5 @@
 fn main() {
-    println!("cargo:rustc-link-search=native=/home/keira/rust/viewlake/build-win/library");
+    println!(r"cargo:rustc-link-search=native=C:\Users\admin\rust\viewlake\build-win");
 
     println!("cargo:rustc-link-lib=static=mbedtls");
     println!("cargo:rustc-link-lib=static=mbedx509");

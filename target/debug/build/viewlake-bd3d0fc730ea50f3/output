@@ -1,0 +1,4 @@
+cargo:rustc-link-search=native=C:\Users\admin\rust\viewlake\build-win
+cargo:rustc-link-lib=static=mbedtls
+cargo:rustc-link-lib=static=mbedx509
+cargo:rustc-link-lib=static=tfpsacrypto
