@@ -1,6 +1,4 @@
-#![no_main]
 #![no_std]
-#![windows_subsystem = "console"]
 
 use core::mem::zeroed;
 use core::panic::PanicInfo;
