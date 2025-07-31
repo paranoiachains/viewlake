@@ -13,6 +13,16 @@ pub fn panic(_: &PanicInfo<'_>) -> ! {
     }
 }
 
+#[no_mangle]
+pub extern "C" fn memcpy(dest: *mut u8, src: *const u8, n: usize) -> *mut u8 {
+    for i in 0..n {
+        unsafe {
+            *dest.add(i) = *src.add(i);
+        }
+    }
+    dest
+}
+
 pub fn makeword(low: u8, high: u8) -> u16 {
     (low as u16) | ((high as u16) << 8)
 }
