@@ -1,6 +1,4 @@
-cargo:rustc-link-search=native=/home/keira/rust/mbedtls/build-win/library
+cargo:rustc-link-search=native=/home/keira/rust/viewlake/build-win/library
 cargo:rustc-link-lib=static=mbedtls
 cargo:rustc-link-lib=static=mbedx509
 cargo:rustc-link-lib=static=tfpsacrypto
-cargo:rustc-link-lib=dylib=crypto
-cargo:rustc-link-lib=dylib=pthread
