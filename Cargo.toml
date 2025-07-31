@@ -10,7 +10,11 @@ windows-sys = { version = "0.52.0", features = [
     "Win32_System_Console",
     "Win32_Networking_WinSock"# for `WriteConsoleA` etc.
 ] }
+<<<<<<< HEAD
 compiler_builtins = { version = "0.1.101", features = ["mem"] }
+=======
+libc = { version = "0.2.146", default-features = false }
+>>>>>>> e537a20 (get rid of memcpy func)
 
 [profile.dev]
 panic = "abort"

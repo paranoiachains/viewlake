@@ -4,6 +4,12 @@
 
 use core::mem::zeroed;
 use core::panic::PanicInfo;
+<<<<<<< HEAD
+=======
+
+
+use core::ptr::copy_nonoverlapping;
+>>>>>>> e537a20 (get rid of memcpy func)
 use windows_sys::Win32::Networking::WinSock::*;
 use windows_sys::Win32::System::Threading::ExitProcess;
 
@@ -143,7 +149,9 @@ pub fn alloc_http_request_no_alloc<'a>(domain: &str, path: &str, buffer: &'a mut
     pub fn write_str(dst: &mut [u8], offset: &mut usize, s: &str) {
         let bytes = s.as_bytes();
         let len = bytes.len();
-        dst[*offset..*offset + len].copy_from_slice(bytes);
+        unsafe {
+            copy_nonoverlapping(bytes.as_ptr(), dst[*offset..].as_mut_ptr(), len);
+        }
         *offset += len;
     }
 
