@@ -34,7 +34,7 @@ unsafe fn log_to_console(s: &str) {
 #[cfg(not(feature = "logging"))]
 unsafe fn log_to_console(_s: &str) {}
 
-unsafe fn resolve_domain(domain: &str) -> Option<SOCKADDR_IN> {
+unsafe fn resolve_domain(domain: &str) -> core::option::Option<SOCKADDR_IN> {
     unsafe {
         let mut hints: ADDRINFOA = core::mem::zeroed();
         hints.ai_family = AF_INET as i32; // IPv4 hints.ai_socktype = SOCK_STREAM as i32;
@@ -46,7 +46,7 @@ unsafe fn resolve_domain(domain: &str) -> Option<SOCKADDR_IN> {
         let len = domain_bytes.len();
 
         if len + 1 > buffer.len() {
-            return None;
+            return core::option::Option::core::option::Option::None;
         }
 
         buffer[..len].copy_from_slice(domain_bytes);
@@ -60,7 +60,7 @@ unsafe fn resolve_domain(domain: &str) -> Option<SOCKADDR_IN> {
         );
         if ret != 0 || result_ptr.is_null() {
             log_to_console("getaddrinfo failed\n");
-            return None;
+            return core::option::Option::None;
         }
 
         let sockaddr_in = {
@@ -69,7 +69,7 @@ unsafe fn resolve_domain(domain: &str) -> Option<SOCKADDR_IN> {
         };
 
         freeaddrinfo(result_ptr);
-        Some(sockaddr_in)
+        core::option::Option::Some(sockaddr_in)
     }
 }
 
@@ -80,11 +80,11 @@ unsafe fn send_http_request(domain: &str, path: &str) -> i32 {
             ExitProcess(1);
         }
         let addr = match resolve_domain(domain) {
-            Some(mut a) => {
+            core::option::Option::Some(mut a) => {
                 a.sin_port = u16::to_be(80);
                 a
             }
-            None => {
+            core::option::Option::None => {
                 WSACleanup();
                 ExitProcess(1);
             }
