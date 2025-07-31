@@ -1,1 +1,0 @@
-{"rustc":2301262321317407952,"features":"","declared_features":"","target":0,"profile":0,"path":0,"deps":[[7648903741785607723,"build_script_build",false,9442232110059176735]],"local":[{"RerunIfChanged":{"output":"x86_64-pc-windows-gnu/release/build/compiler_builtins-482b2a7143b048dc/output","paths":["build.rs","configure.rs"]}}],"rustflags":[],"config":0,"compile_kind":0}
