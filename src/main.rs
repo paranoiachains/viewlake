@@ -2,6 +2,10 @@
 #![no_std]
 #![windows_subsystem = "console"]
 
+use viewlake::*;
+use windows_sys::Win32::Networking::WinSock::*;
+use windows_sys::Win32::System::Threading::ExitProcess;
+
 #[allow(non_snake_case)]
 #[unsafe(no_mangle)]
 fn mainCRTStartup() -> ! {

@@ -1,24 +1,23 @@
+#![no_std]
 use core::mem::zeroed;
 use core::panic::PanicInfo;
 
-use core::ffi::c_void;
 use windows_sys::Win32::Networking::WinSock::*;
-use windows_sys::Win32::System::Console::{GetStdHandle, STD_OUTPUT_HANDLE, WriteConsoleA};
 use windows_sys::Win32::System::Threading::ExitProcess;
 
 #[panic_handler]
-fn panic(_: &PanicInfo<'_>) -> ! {
+pub fn panic(_: &PanicInfo<'_>) -> ! {
     unsafe {
         log_to_console("panic occured\n");
         ExitProcess(1);
     }
 }
 
-fn makeword(low: u8, high: u8) -> u16 {
+pub fn makeword(low: u8, high: u8) -> u16 {
     (low as u16) | ((high as u16) << 8)
 }
 #[cfg(feature = "logging")]
-unsafe fn log_to_console(s: &str) {
+pub fn log_to_console(s: &str) {
     unsafe {
         let console = GetStdHandle(STD_OUTPUT_HANDLE);
         let _ = WriteConsoleA(
@@ -32,9 +31,9 @@ unsafe fn log_to_console(s: &str) {
 }
 
 #[cfg(not(feature = "logging"))]
-unsafe fn log_to_console(_s: &str) {}
+pub fn log_to_console(_s: &str) {}
 
-unsafe fn resolve_domain(domain: &str) -> core::option::Option<SOCKADDR_IN> {
+pub fn resolve_domain(domain: &str) -> core::option::Option<SOCKADDR_IN> {
     unsafe {
         let mut hints: ADDRINFOA = core::mem::zeroed();
         hints.ai_family = AF_INET as i32; // IPv4 hints.ai_socktype = SOCK_STREAM as i32;
@@ -73,7 +72,7 @@ unsafe fn resolve_domain(domain: &str) -> core::option::Option<SOCKADDR_IN> {
     }
 }
 
-unsafe fn send_http_request(domain: &str, path: &str) -> i32 {
+pub fn send_http_request(domain: &str, path: &str) -> i32 {
     unsafe {
         if WSAStartup(makeword(2, 2), &mut zeroed()) != 0 {
             log_to_console("WSAStartup failed\n");
@@ -140,7 +139,7 @@ fn alloc_http_request_no_alloc<'a>(domain: &str, path: &str, buffer: &'a mut [u8
     let mut offset = 0;
 
     // Helper to write a string into the buffer
-    fn write_str(dst: &mut [u8], offset: &mut usize, s: &str) {
+    pub fn write_str(dst: &mut [u8], offset: &mut usize, s: &str) {
         let bytes = s.as_bytes();
         let len = bytes.len();
         dst[*offset..*offset + len].copy_from_slice(bytes);
