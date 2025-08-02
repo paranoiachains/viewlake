@@ -1,6 +1,8 @@
 #![no_std]
+#![allow(unused_imports)]
 
 use core::any::{Any, TypeId};
+use core::ffi::c_void;
 use core::panic::PanicInfo;
 use core::ptr::null;
 
@@ -33,55 +35,149 @@ pub fn log_to_console(s: &str) {
 #[cfg(not(feature = "logging"))]
 pub fn log_to_console(_s: &str) {}
 
-fn request(token: &str) {
-    unsafe {
-        let session = WinHttpOpen(b"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36\0".as_ptr() as *const u16,
-    WINHTTP_ACCESS_TYPE_AUTOMATIC_PROXY, core::ptr::null(), core::ptr::null(), 0);
+pub struct HttpRequest<'a> {
+    pub hostname: &'a [u16],
+    pub path: &'a [u16],
+    pub method: &'a [u16],
+    pub headers: [&'a [u16]; 16],
+    pub body: Option<&'a [u8]>,
+    pub accept: &'a [u16],
+}
 
+impl<'a> HttpRequest<'a> {
+    pub fn new(
+        hostname: &[u8],
+        path: &[u8],
+        method: &[u8],
+        headers_utf8: [&[u8]; 16],
+        body: Option<&'a [u8]>,
+        accept: &[u8],
+        hostname_buf: &'a mut [u16],
+        path_buf: &'a mut [u16],
+        method_buf: &'a mut [u16],
+        headers_bufs: &'a mut [[u16; 256]; 16],
+        accept_buf: &'a mut [u16],
+    ) -> Result<Self, ()> {
+        let hostname = utf8_bytes_to_utf16(hostname, hostname_buf)?;
+        let path = utf8_bytes_to_utf16(path, path_buf)?;
+        let method = utf8_bytes_to_utf16(method, method_buf)?;
+        let accept = utf8_bytes_to_utf16(accept, accept_buf)?;
+
+        let mut headers: [&[u16]; 16] = [&[]; 16];
+
+        for (i, (header_utf8, buf)) in headers_utf8.iter().zip(headers_bufs.iter_mut()).enumerate()
+        {
+            if header_utf8.is_empty() {
+                continue;
+            }
+            headers[i] = utf8_bytes_to_utf16(header_utf8, buf)?;
+        }
+
+        Ok(HttpRequest {
+            hostname,
+            path,
+            method,
+            headers,
+            body,
+            accept,
+        })
+    }
+}
+
+fn utf8_bytes_to_utf16<'a>(src: &[u8], dst: &'a mut [u16]) -> Result<&'a [u16], ()> {
+    let s = core::str::from_utf8(src).map_err(|_| ())?;
+
+    let mut i = 0;
+    for c in s.encode_utf16() {
+        if i >= dst.len() {
+            return Err(());
+        }
+        dst[i] = c;
+        i += 1;
+    }
+
+    if i >= dst.len() {
+        return Err(());
+    }
+    dst[i] = 0;
+
+    Ok(&dst[..i + 1])
+}
+
+pub unsafe fn request(req: &HttpRequest) {
+    unsafe {
+        log_to_console("[+] Starting WinHTTP request...\n");
+
+        let user_agent = b"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36\0";
+
+        log_to_console("[*] Creating session...\n");
+        let session = WinHttpOpen(
+            user_agent.as_ptr() as *const u16,
+            WINHTTP_ACCESS_TYPE_AUTOMATIC_PROXY,
+            core::ptr::null(),
+            core::ptr::null(),
+            0,
+        );
+        log_to_console("[+] Session created\n");
+        log_to_console("[*] Connecting to host...\n");
         let connection_handle = WinHttpConnect(
             session,
-            b"ya.ru\0".as_ptr() as *const u16,
+            req.hostname.as_ptr() as *const u16,
             INTERNET_DEFAULT_HTTPS_PORT,
             0,
         );
+        log_to_console("[+] Connected\n");
 
+        log_to_console("[*] Opening request...\n");
         let request_handle = WinHttpOpenRequest(
             connection_handle,
-            b"GET\0".as_ptr() as *const u16,
-            b"/\0".as_ptr() as *const u16,
+            req.method.as_ptr() as *const u16,
+            req.path.as_ptr() as *const u16,
             core::ptr::null(),
             core::ptr::null(),
-            b"application/json".as_ptr() as *const *const u16,
+            core::ptr::null(),
             WINHTTP_FLAG_SECURE,
         );
+        log_to_console("[+] Request handle created\n");
 
-        let token_length = token.chars().count() as u32;
-        let token = token.as_bytes().as_ptr() as *const u16;
+        log_to_console("[*] Adding headers...\n");
+        for header in req.headers {
+            if header.is_empty() || header[0] == 0 {
+                continue;
+            }
+            WinHttpAddRequestHeaders(
+                request_handle,
+                header.as_ptr() as *const u16,
+                u32::MAX, // full header string
+                WINHTTP_ADDREQ_FLAG_ADD,
+            );
+            log_to_console("[+] Header added\n");
+        }
 
-        let sent = WinHttpSendRequest(
+        log_to_console("[*] Preparing body...\n");
+        let body_ptr = req
+            .body
+            .map_or(core::ptr::null(), |b| b.as_ptr() as *const _);
+        let body_len = req.body.map_or(0, |b| b.len() as u32);
+        log_to_console("[+] Body prepared\n");
+
+        log_to_console("[*] Sending request...\n");
+        WinHttpSendRequest(
             request_handle,
-            token,
-            token_length,
             core::ptr::null(),
             0,
-            0,
+            body_ptr,
+            body_len,
+            body_len,
             0,
         );
+        log_to_console("[+] Request sent\n");
 
-        if sent == 0 {
-            WinHttpCloseHandle(request_handle);
-            WinHttpCloseHandle(connection_handle);
-            WinHttpCloseHandle(session);
-        }
+        log_to_console("[*] Receiving response...\n");
+        WinHttpReceiveResponse(request_handle, core::ptr::null_mut());
+        log_to_console("[+] Response received\n");
 
-        let recv = WinHttpReceiveResponse(request_handle, core::ptr::null_mut());
-
-        if recv == 0 {
-            WinHttpCloseHandle(request_handle);
-            WinHttpCloseHandle(connection_handle);
-            WinHttpCloseHandle(session);
-        }
-
+        log_to_console("[*] Reading response body...\n");
         let mut buffer = [0u8; 4096];
         let mut bytes_read = 0u32;
 
@@ -92,14 +188,20 @@ fn request(token: &str) {
                 buffer.len() as u32,
                 &mut bytes_read,
             );
-
             if success == 0 || bytes_read == 0 {
                 break;
             }
+            log_to_console(
+                core::str::from_utf8(&buffer[..bytes_read as usize]).unwrap_or("[invalid utf8]\n"),
+            );
         }
 
+        log_to_console("[+] Finished reading response\n");
+
+        log_to_console("[*] Cleaning up...\n");
         WinHttpCloseHandle(request_handle);
         WinHttpCloseHandle(connection_handle);
         WinHttpCloseHandle(session);
+        log_to_console("[+] Done\n");
     }
 }
