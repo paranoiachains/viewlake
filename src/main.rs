@@ -5,6 +5,11 @@
 use windows_sys::Win32::Networking::WinSock::SOCKET_ERROR;
 use windows_sys::Win32::System::Threading::ExitProcess;
 
+#[link(name = "bearssl", kind = "static")]
+unsafe extern "C" {
+    pub fn br_version(ver: *mut i32);
+}
+
 #[allow(non_snake_case)]
 #[unsafe(no_mangle)]
 fn mainCRTStartup() -> ! {

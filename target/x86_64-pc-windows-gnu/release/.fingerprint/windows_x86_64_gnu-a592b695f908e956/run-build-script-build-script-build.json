@@ -1,0 +1,1 @@
+{"rustc":8839923038223376940,"features":"","declared_features":"","target":0,"profile":0,"path":0,"deps":[[7648903741785607723,"build_script_build",false,13167466942902871053],[9309263435847402018,"build_script_build",false,13513473340460020467]],"local":[{"Precalculated":"0.52.6"}],"rustflags":["-L","all=./build-win","-l","static=mbedtls"],"config":0,"compile_kind":0}

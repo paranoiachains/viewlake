@@ -37,7 +37,7 @@ pub fn log_to_console(_s: &str) {}
 pub fn resolve_domain(domain: &str) -> core::option::Option<SOCKADDR_IN> {
     unsafe {
         let mut hints: ADDRINFOA = core::mem::zeroed();
-        hints.ai_family = AF_INET as i32; // IPv4 hints.ai_socktype = SOCK_STREAM as i32;
+        hints.ai_family = AF_INET as i32;
         hints.ai_protocol = IPPROTO_TCP as i32;
 
         let mut result_ptr: *mut ADDRINFOA = core::ptr::null_mut();
@@ -75,13 +75,14 @@ pub fn resolve_domain(domain: &str) -> core::option::Option<SOCKADDR_IN> {
 
 pub fn send_http_request(domain: &str, path: &str) -> (i32, [u8; 512]) {
     unsafe {
-        if WSAStartup((2u16) | (2u16 << 8), &mut zeroed()) != 0 {
+        let mut wsa_data: WSADATA = zeroed();
+        if WSAStartup((2u16) | (2u16 << 8), &mut wsa_data) != 0 {
             log_to_console("WSAStartup failed\n");
             ExitProcess(1);
         }
         let addr = match resolve_domain(domain) {
             core::option::Option::Some(mut a) => {
-                a.sin_port = u16::to_be(80);
+                a.sin_port = 80u16.to_be();
                 a
             }
             core::option::Option::None => {
@@ -139,7 +140,6 @@ pub fn send_http_request(domain: &str, path: &str) -> (i32, [u8; 512]) {
 pub fn log_bytes_to_console(bytes: &[u8]) {
     unsafe {
         let console = GetStdHandle(STD_OUTPUT_HANDLE);
-        // WriteConsoleA needs length as u32
         let mut written = 0u32;
         let _ = WriteConsoleA(
             console,
@@ -154,7 +154,6 @@ pub fn log_bytes_to_console(bytes: &[u8]) {
 pub fn alloc_http_request_no_alloc<'a>(domain: &str, path: &str, buffer: &'a mut [u8]) -> &'a [u8] {
     let mut offset = 0;
 
-    // Helper to write a string into the buffer
     fn write_str(dst: &mut [u8], offset: &mut usize, s: &str) {
         let bytes = s.as_bytes();
         let len = bytes.len();

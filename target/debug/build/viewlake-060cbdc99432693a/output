@@ -1,0 +1,4 @@
+cargo::rustc-link-search=native=lib
+cargo::rustc-link-lib=static=bearssl
+cargo:rerun-if-changed=lib/libbearssl.a
+cargo:rerun-if-changed=include/bearssl.h
