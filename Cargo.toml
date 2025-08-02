@@ -8,8 +8,11 @@ windows-sys = { version = "0.52.0", features = [
     "Win32_Foundation",
     "Win32_System_Threading", # for `ExitProcess`
     "Win32_System_Console",
-    "Win32_Networking_WinSock"# for `WriteConsoleA` etc.
+    "Win32_Networking_WinHttp"# for `WriteConsoleA` etc.
 ] }
+
+[build-dependencies]
+cc = "1.0"
 
 [profile.dev]
 panic = "abort"

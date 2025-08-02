@@ -2,26 +2,11 @@
 #![no_main]
 #![windows_subsystem = "console"]
 
-use windows_sys::Win32::Networking::WinSock::SOCKET_ERROR;
+use viewlake::panic;
 use windows_sys::Win32::System::Threading::ExitProcess;
-
-#[link(name = "bearssl", kind = "static")]
-unsafe extern "C" {
-    pub fn br_version(ver: *mut i32);
-}
 
 #[allow(non_snake_case)]
 #[unsafe(no_mangle)]
-fn mainCRTStartup() -> ! {
-    unsafe {
-        viewlake::log_to_console("starting http request...\n");
-        let (received, buffer) = viewlake::send_http_request("ya.ru", "/");
-        if received == SOCKET_ERROR {
-            viewlake::log_to_console("Request failed\n");
-        } else {
-            viewlake::log_to_console("Request succeeded\n");
-            viewlake::log_bytes_to_console(&buffer[..received as usize]);
-        }
-        ExitProcess(0);
-    }
+unsafe fn mainCRTStartup() -> ! {
+    ExitProcess(0);
 }
