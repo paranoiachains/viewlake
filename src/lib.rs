@@ -22,8 +22,8 @@ pub fn panic(_: &PanicInfo<'_>) -> ! {
 #[cfg(feature = "logging")]
 pub fn log_to_console(s: &str) {
     unsafe {
-        let console = getstdhandle(std_output_handle);
-        let _ = writeconsolea(
+        let console = GetStdHandle(STD_OUTPUT_HANDLE);
+        let _ = WriteConsoleA(
             console,
             s.as_ptr() as *const c_void,
             s.len() as u32,
