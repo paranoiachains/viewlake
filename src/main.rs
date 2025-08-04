@@ -9,19 +9,25 @@ use windows_sys::Win32::System::Threading::ExitProcess;
 #[unsafe(no_mangle)]
 fn mainCRTStartup() -> ! {
     unsafe {
-        let mut buffers = Utf16Buffers {
-            hostname: [0; 256],
-            hostname_len: 0,
-            path: [0; 256],
-            path_len: 0,
-            method: [0; 16],
-            method_len: 0,
-            headers: [[0; 256]; 16],
-            headers_len: [0; 16],
-            headers_count: 0,
-            accept: [0; 64],
-            accept_len: 0,
-            body: Some((b"hello", 5)),
+        static HOSTNAME: &[u16] = &[
+            0x0065, 0x0078, 0x0061, 0x006D, 0x0070, 0x006C, 0x0065, 0x002E, 0x0063, 0x006F, 0x006D,
+        ]; // "example.com"
+        static METHOD: &[u16] = &[0x0047, 0x0045, 0x0054]; // "GET"
+        static PATH: &[u16] = &[0x002F]; // "/"
+        static ACCEPT_HEADER: &[u16] = &[
+            0x0041, 0x0063, 0x0063, 0x0065, 0x0070, 0x0074, 0x003A, 0x0020, 0x002A, 0x002F, 0x002A,
+        ]; // "Accept: */*"
+        static ACCEPT: &[u16] = &[
+            0x0074, 0x0065, 0x0078, 0x0074, 0x002F, 0x0070, 0x006C, 0x0061, 0x0069, 0x006E,
+        ]; // "text/plain"
+
+        let http_request = HttpRequest {
+            hostname: HOSTNAME,
+            method: METHOD,
+            path: PATH,
+            headers: &[ACCEPT_HEADER],
+            accept: ACCEPT,
+            body: None,
         };
         ExitProcess(0);
     }
