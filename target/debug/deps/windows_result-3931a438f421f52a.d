@@ -1,0 +1,11 @@
+/home/keira/rust/viewlake/target/debug/deps/windows_result-3931a438f421f52a.d: /home/keira/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/windows-result-0.3.4/src/lib.rs /home/keira/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/windows-result-0.3.4/src/bindings.rs /home/keira/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/windows-result-0.3.4/src/error.rs /home/keira/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/windows-result-0.3.4/src/hresult.rs /home/keira/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/windows-result-0.3.4/src/bool.rs /home/keira/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/windows-result-0.3.4/src/../readme.md /home/keira/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/windows-result-0.3.4/src/../windows-result.natvis
+
+/home/keira/rust/viewlake/target/debug/deps/libwindows_result-3931a438f421f52a.rmeta: /home/keira/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/windows-result-0.3.4/src/lib.rs /home/keira/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/windows-result-0.3.4/src/bindings.rs /home/keira/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/windows-result-0.3.4/src/error.rs /home/keira/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/windows-result-0.3.4/src/hresult.rs /home/keira/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/windows-result-0.3.4/src/bool.rs /home/keira/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/windows-result-0.3.4/src/../readme.md /home/keira/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/windows-result-0.3.4/src/../windows-result.natvis
+
+/home/keira/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/windows-result-0.3.4/src/lib.rs:
+/home/keira/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/windows-result-0.3.4/src/bindings.rs:
+/home/keira/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/windows-result-0.3.4/src/error.rs:
+/home/keira/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/windows-result-0.3.4/src/hresult.rs:
+/home/keira/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/windows-result-0.3.4/src/bool.rs:
+/home/keira/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/windows-result-0.3.4/src/../readme.md:
+/home/keira/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/windows-result-0.3.4/src/../windows-result.natvis:
