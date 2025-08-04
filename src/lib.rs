@@ -11,9 +11,6 @@ use windows_sys::Win32::Networking::WinHttp::*;
 use windows_sys::Win32::System::Console::{GetStdHandle, STD_OUTPUT_HANDLE, WriteConsoleA};
 use windows_sys::Win32::System::Threading::ExitProcess;
 
-use crate::utf::to_utf16;
-pub mod utf;
-
 #[panic_handler]
 pub fn panic(_: &PanicInfo<'_>) -> ! {
     unsafe {
@@ -49,26 +46,47 @@ pub struct HttpRequest<'a> {
 }
 
 impl<'a> HttpRequest<'a> {
-    pub fn new(buffers: &'a utf::Utf16Buffers, header_refs: &'a mut [&'a [u16]]) -> Self {
+    pub fn new(buffers: &'a Utf16Buffers, header_refs: &'a mut [&'a [u16]]) -> Self {
         for i in 0..buffers.headers_count {
             header_refs[i] = &buffers.headers[i][..buffers.headers_len[i]];
         }
-        let body_bytes: Option<&'a [u8]> = if let Some((ref arr, len)) = buffers.body {
-            // SAFETY: arr is &[u16], reinterpret as &[u8]
-            Some(unsafe { core::slice::from_raw_parts(arr.as_ptr() as *const u8, len * 2) })
-        } else {
-            None
-        };
 
         HttpRequest {
             hostname: &buffers.hostname[..buffers.hostname_len],
             path: &buffers.path[..buffers.path_len],
             method: &buffers.method[..buffers.method_len],
             headers: &header_refs[..buffers.headers_count],
-            body: body_bytes,
+            body: buffers
+                .body
+                .map(|(arr, len)| &arr[..len])
+                .map(|s| unsafe { core::slice::from_raw_parts(s.as_ptr() as *const u8, s.len()) }),
             accept: &buffers.accept[..buffers.accept_len],
         }
     }
+}
+
+pub fn ascii_to_utf16(input: &[u8], out: &mut [u16]) -> usize {
+    let mut i = 0;
+    while i < input.len() && i < out.len() {
+        out[i] = input[i] as u16;
+        i += 1;
+    }
+    i
+}
+
+pub struct Utf16Buffers {
+    pub hostname: [u16; 256],
+    pub hostname_len: usize,
+    pub path: [u16; 256],
+    pub path_len: usize,
+    pub method: [u16; 16],
+    pub method_len: usize,
+    pub headers: [[u16; 256]; 16],
+    pub headers_len: [usize; 16],
+    pub headers_count: usize,
+    pub accept: [u16; 64],
+    pub accept_len: usize,
+    pub body: Option<(&'static [u8], usize)>,
 }
 
 pub struct Session<'a> {
