@@ -34,14 +34,23 @@ fn mainCRTStartup() -> ! {
 
         if let Err(err) = session.send_request() {
             log_to_console("[-] Failed to send request\n");
-            log_err(err);
+            unsafe {
+                let console = GetStdHandle(STD_OUTPUT_HANDLE);
+                let _ = WriteConsoleA(
+                    console,
+                    err as *const c_void,
+                    s.len() as u32,
+                    core::ptr::null_mut(),
+                    core::ptr::null_mut(),
+                );
+            }
+
             ExitProcess(1);
         }
 
         let mut response_buffer = [0u8; 1024];
         if let Err(err) = session.read_response(&mut response_buffer) {
             log_to_console("[-] Failed to read response\n");
-            log_err(err);
             ExitProcess(1);
         }
 

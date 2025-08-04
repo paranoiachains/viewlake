@@ -22,11 +22,47 @@ pub fn panic(_: &PanicInfo<'_>) -> ! {
 #[cfg(feature = "logging")]
 pub fn log_to_console(s: &str) {
     unsafe {
-        let console = GetStdHandle(STD_OUTPUT_HANDLE);
-        let _ = WriteConsoleA(
+        let console = getstdhandle(std_output_handle);
+        let _ = writeconsolea(
             console,
             s.as_ptr() as *const c_void,
             s.len() as u32,
+            core::ptr::null_mut(),
+            core::ptr::null_mut(),
+        );
+    }
+}
+
+pub fn log_err(e: u32) {
+    // Buffer to hold the ASCII decimal representation of the number
+    let mut buf = [0u8; 11]; // Max u32 is 10 digits + null terminator
+    let mut i = buf.len();
+
+    let mut n = e;
+    if n == 0 {
+        i -= 1;
+        buf[i] = b'0';
+    } else {
+        while n > 0 {
+            i -= 1;
+            buf[i] = b'0' + (n % 10) as u8;
+            n /= 10;
+        }
+    }
+
+    unsafe {
+        let console = GetStdHandle(STD_OUTPUT_HANDLE);
+        let _ = WriteConsoleA(
+            console,
+            buf[i..].as_ptr() as *const c_void,
+            (buf.len() - i) as u32,
+            core::ptr::null_mut(),
+            core::ptr::null_mut(),
+        );
+        let _ = WriteConsoleA(
+            console,
+            b"\n".as_ptr() as *const c_void,
+            1,
             core::ptr::null_mut(),
             core::ptr::null_mut(),
         );
