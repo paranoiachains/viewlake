@@ -11,6 +11,9 @@ windows-sys = { version = "0.52.0", features = [
     "Win32_Networking_WinHttp"# for `WriteConsoleA` etc.
 ] }
 
+[dependencies.windows-strings]
+version = "0.4"
+
 [profile.dev]
 panic = "abort"
 
