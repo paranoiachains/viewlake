@@ -32,18 +32,47 @@ fn mainCRTStartup() -> ! {
 
         let session = Session::new(http_request);
 
-        if let Err(_) = session.send_request() {
+        if let Err(err) = session.send_request() {
             log_to_console("[-] Failed to send request\n");
+            log_error_code(err);
             ExitProcess(1);
         }
 
         let mut response_buffer = [0u8; 1024];
-        if let Err(_) = session.read_response(&mut response_buffer) {
+        if let Err(err) = session.read_response(&mut response_buffer) {
             log_to_console("[-] Failed to read response\n");
+            log_error_code(err);
             ExitProcess(1);
         }
 
         log_to_console("[+] Request and response completed\n");
         ExitProcess(0);
     }
+}
+
+pub fn log_error_code(code: u32) {
+    use core::fmt::Write;
+    let mut buf = [0u8; 16];
+    let len = utoa(code, &mut buf);
+    unsafe {
+        log_to_console("Error code: ");
+        log_to_console(core::str::from_utf8_unchecked(&buf[..len]));
+        log_to_console("\n");
+    }
+}
+
+fn utoa(mut num: u32, out: &mut [u8]) -> usize {
+    if num == 0 {
+        out[0] = b'0';
+        return 1;
+    }
+    let mut i = out.len();
+    while num > 0 {
+        i -= 1;
+        out[i] = b'0' + (num % 10) as u8;
+        num /= 10;
+    }
+    let len = out.len() - i;
+    out.copy_within(i.., 0);
+    len
 }
