@@ -11,6 +11,9 @@ use windows_sys::Win32::Networking::WinHttp::*;
 use windows_sys::Win32::System::Console::{GetStdHandle, STD_OUTPUT_HANDLE, WriteConsoleA};
 use windows_sys::Win32::System::Threading::ExitProcess;
 
+use crate::utf::to_utf16;
+pub mod utf;
+
 #[panic_handler]
 pub fn panic(_: &PanicInfo<'_>) -> ! {
     unsafe {
@@ -45,6 +48,29 @@ pub struct HttpRequest<'a> {
     pub accept: &'a [u16],
 }
 
+impl<'a> HttpRequest<'a> {
+    pub fn new(buffers: &'a utf::Utf16Buffers, header_refs: &'a mut [&'a [u16]]) -> Self {
+        for i in 0..buffers.headers_count {
+            header_refs[i] = &buffers.headers[i][..buffers.headers_len[i]];
+        }
+        let body_bytes: Option<&'a [u8]> = if let Some((ref arr, len)) = buffers.body {
+            // SAFETY: arr is &[u16], reinterpret as &[u8]
+            Some(unsafe { core::slice::from_raw_parts(arr.as_ptr() as *const u8, len * 2) })
+        } else {
+            None
+        };
+
+        HttpRequest {
+            hostname: &buffers.hostname[..buffers.hostname_len],
+            path: &buffers.path[..buffers.path_len],
+            method: &buffers.method[..buffers.method_len],
+            headers: &header_refs[..buffers.headers_count],
+            body: body_bytes,
+            accept: &buffers.accept[..buffers.accept_len],
+        }
+    }
+}
+
 pub struct Session<'a> {
     pub session: *mut c_void,
     pub connection_handle: *mut c_void,
@@ -53,7 +79,7 @@ pub struct Session<'a> {
 }
 
 impl<'a> Session<'a> {
-    pub unsafe fn build_session(req: HttpRequest<'a>) -> Self {
+    pub unsafe fn new(req: HttpRequest<'a>) -> Self {
         unsafe {
             log_to_console("[+] Starting WinHTTP request...\n");
 
