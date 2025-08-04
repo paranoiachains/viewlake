@@ -34,8 +34,7 @@ pub fn log_to_console(s: &str) {
 }
 
 pub fn log_err(e: u32) {
-    // Buffer to hold the ASCII decimal representation of the number
-    let mut buf = [0u8; 11]; // Max u32 is 10 digits + null terminator
+    let mut buf = [0u8; 11];
     let mut i = buf.len();
 
     let mut n = e;
@@ -133,11 +132,11 @@ pub struct Session<'a> {
 }
 
 impl<'a> Session<'a> {
-    pub unsafe fn new(req: HttpRequest<'a>) -> Self {
+    pub fn new(req: HttpRequest<'_>) -> Session {
         unsafe {
             log_to_console("[+] Starting WinHTTP request...\n");
 
-            let user_agent = b"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36\0";
+            let user_agent = b"Mozilla/5.0\0";
 
             log_to_console("[*] Creating session...\n");
             let session = WinHttpOpen(
@@ -147,46 +146,50 @@ impl<'a> Session<'a> {
                 core::ptr::null(),
                 0,
             );
-            log_to_console("[+] Session created\n");
+
+            if session.is_null() {
+                log_to_console("[-] WinHttpOpen failed\n");
+                log_err(GetLastError());
+                ExitProcess(1);
+            }
+
             log_to_console("[*] Connecting to host...\n");
-            let connection_handle = WinHttpConnect(
+            let connection = WinHttpConnect(
                 session,
-                req.hostname.as_ptr() as *const u16,
+                req.hostname.as_ptr(),
                 INTERNET_DEFAULT_HTTPS_PORT,
                 0,
             );
-            log_to_console("[+] Connected\n");
+
+            if connection.is_null() {
+                log_to_console("[-] WinHttpConnect failed\n");
+                log_err(GetLastError());
+                ExitProcess(1);
+            }
 
             log_to_console("[*] Opening request...\n");
-            let request_handle = WinHttpOpenRequest(
-                connection_handle,
-                req.method.as_ptr() as *const u16,
-                req.path.as_ptr() as *const u16,
+            let request = WinHttpOpenRequest(
+                connection,
+                req.method.as_ptr(),
+                req.path.as_ptr(),
                 core::ptr::null(),
                 core::ptr::null(),
                 core::ptr::null(),
                 WINHTTP_FLAG_SECURE,
             );
-            log_to_console("[+] Request handle created\n");
 
-            log_to_console("[*] Adding headers...\n");
-            for header in req.headers {
-                if header.is_empty() || header[0] == 0 {
-                    continue;
-                }
-                WinHttpAddRequestHeaders(
-                    request_handle,
-                    header.as_ptr() as *const u16,
-                    u32::MAX,
-                    WINHTTP_ADDREQ_FLAG_ADD,
-                );
-                log_to_console("[+] Header added\n");
+            if request.is_null() {
+                log_to_console("[-] WinHttpOpenRequest failed\n");
+                log_err(GetLastError());
+                ExitProcess(1);
             }
+
+            log_to_console("[+] HTTP session initialized\n");
 
             Session {
                 session,
-                connection_handle,
-                request_handle,
+                connection_handle: connection,
+                request_handle: request,
                 http_request: req,
             }
         }
