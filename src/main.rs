@@ -48,6 +48,8 @@ fn mainCRTStartup() -> ! {
         }
 
         log_to_console("[+] Request and response completed\n");
+
+        log_to_console(core::str::from_utf8(&response_buffer).unwrap());
         ExitProcess(0);
     }
 }

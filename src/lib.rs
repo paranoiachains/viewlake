@@ -171,7 +171,7 @@ impl<'a> Session<'a> {
             let request = WinHttpOpenRequest(
                 connection,
                 req.method.as_ptr(),
-                req.path.as_ptr(),
+                core::ptr::null(),
                 core::ptr::null(),
                 core::ptr::null(),
                 core::ptr::null(),
