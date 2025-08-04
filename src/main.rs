@@ -11,6 +11,7 @@ fn mainCRTStartup() -> ! {
     unsafe {
         static HOSTNAME: &[u16] = &[
             0x0065, 0x0078, 0x0061, 0x006D, 0x0070, 0x006C, 0x0065, 0x002E, 0x0063, 0x006F, 0x006D,
+            0x0000,
         ]; // "example.com"
         static METHOD: &[u16] = &[0x0047, 0x0045, 0x0054]; // "GET"
         static PATH: &[u16] = &[0x002F]; // "/"
