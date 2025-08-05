@@ -1,5 +1,5 @@
+use core::ffi::c_void;
 use std::ffi::OsStr;
-use std::os::raw::c_void;
 
 use std::os::windows::ffi::OsStrExt;
 
