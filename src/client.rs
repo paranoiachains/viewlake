@@ -11,7 +11,7 @@ use windows::core::Error;
 pub struct Client {
     pub session: WinHttpSession,
     pub connection: Option<WinHttpConnection>,
-    agent_utf16: Vec<u16>,
+    agent_utf16: Vec<u16>, // neccessary for utf16 conversions
     host_utf16: Option<Vec<u16>>,
 }
 
@@ -23,8 +23,8 @@ fn utf8_to_utf16(s: &str) -> Vec<u16> {
 }
 
 impl Client {
-    // To establish connection immediately, provide hostname. Else, it will be established during
-    // send_request method.
+    /// To establish connection immediately, provide hostname. Else, it will be established during
+    /// send_request method.
     pub fn new(agent: &str, hostname: Option<&str>) -> Result<Self, Error> {
         let agent_utf16 = utf8_to_utf16(agent);
         let agent_wide = PCWSTR::from_raw(agent_utf16.as_ptr());
@@ -51,6 +51,7 @@ impl Client {
     pub fn send_request(&mut self, request: Request) -> Result<(), Error> {
         let host_utf16 = utf8_to_utf16(request.hostname);
         let host_wide = PCWSTR::from_raw(host_utf16.as_ptr());
+
         match &self.connection {
             Some(conn) => {
                 if conn.hostname != request.hostname {
@@ -69,15 +70,12 @@ impl Client {
         let accept_type_utf16 = utf8_to_utf16(request.accept_type);
         let accept_type_wide = PCWSTR::from_raw(accept_type_utf16.as_ptr());
 
-        let request_handle = match WinHttpRequest::new(
+        let request_handle = WinHttpRequest::new(
             self.connection.as_ref().unwrap(),
             method_wide,
             path_wide,
             &accept_type_wide,
-        ) {
-            Ok(handle) => handle,
-            Err(e) => return Err(e),
-        };
+        )?;
 
         let headers_joined = request.headers.map(|h| {
             let joined = h.join("\r\n");
@@ -91,13 +89,8 @@ impl Client {
             (bytes.as_ptr() as *const c_void, bytes.len() as u32)
         });
 
-        if let Err(e) = request_handle.send(headers_wide, body_wide) {
-            return Err(e);
-        };
-
-        if let Err(e) = request_handle.receive() {
-            return Err(e);
-        };
+        request_handle.send(headers_wide, body_wide)?;
+        request_handle.receive()?;
 
         const BUF_LEN: u32 = 256;
 
