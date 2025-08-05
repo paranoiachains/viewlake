@@ -47,31 +47,31 @@ impl Drop for WinHttpSession {
     }
 }
 
-pub struct WinHttpConnection(HINTERNET);
+pub struct WinHttpConnection {
+    pub handle: HINTERNET,
+    pub hostname: String,
+}
 
 impl WinHttpConnection {
     pub fn new(session: &WinHttpSession, hostname: PCWSTR) -> Result<Self> {
         unsafe {
-            let session = WinHttpConnect(session.0, hostname, INTERNET_DEFAULT_HTTPS_PORT, 0);
+            let handle = WinHttpConnect(session.0, hostname, INTERNET_DEFAULT_HTTPS_PORT, 0);
 
-            if session.is_null() {
+            if handle.is_null() {
                 Err(GetLastError().unwrap_err())
             } else {
-                Ok(Self(session))
+                Ok(Self {
+                    handle,
+                    hostname: hostname.to_string().unwrap(),
+                })
             }
         }
     }
 }
 
-impl Into<HINTERNET> for WinHttpConnection {
-    fn into(self) -> HINTERNET {
-        self.0
-    }
-}
-
 impl Drop for WinHttpConnection {
     fn drop(&mut self) {
-        unsafe { WinHttpCloseHandle(self.0).unwrap() }
+        unsafe { WinHttpCloseHandle(self.handle).unwrap() }
     }
 }
 
@@ -79,14 +79,14 @@ pub struct WinHttpRequest(HINTERNET);
 
 impl WinHttpRequest {
     pub fn new(
-        connection: WinHttpConnection,
+        connection: &WinHttpConnection,
         method: PCWSTR,
         path: PCWSTR,
         accept_types: *const PCWSTR,
     ) -> Result<Self> {
         unsafe {
             let request = WinHttpOpenRequest(
-                connection.into(),
+                connection.handle,
                 method,
                 path,
                 PCWSTR::null(), // HTTP version (1.1)
