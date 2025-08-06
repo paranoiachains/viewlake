@@ -124,9 +124,7 @@ impl WinHttpRequest {
     }
 
     pub fn receive(&self) -> Result<()> {
-        unsafe {
-            WinHttpReceiveResponse(self.0, std::ptr::null_mut() as *mut c_void)?;
-        }
+        unsafe { WinHttpReceiveResponse(self.0, std::ptr::null_mut() as *mut c_void) }
     }
 
     pub fn read_response(&self, buf: *mut c_void, buf_len: u32) -> Result<()> {
