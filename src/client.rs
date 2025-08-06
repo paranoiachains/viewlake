@@ -170,4 +170,14 @@ mod tests {
         assert_eq!(request.body, Some("{\"key\":\"value\"}"));
         assert_eq!(request.headers.as_ref().unwrap(), &headers);
     }
+
+    #[test]
+    fn utf16_conversion() {
+        let input = utf8_to_utf16("Convert this!");
+        assert_eq!(input.last(), Some(&0), "Null termination is not valid");
+
+        let without_null = &utf16[..utf16.len() - 1];
+        let decoded = String::from_utf16(without_null).expect("Failed to decode UTF-16");
+        assert_eq!(decoded, input, "UTF-16 conversion mismatch");
+    }
 }
