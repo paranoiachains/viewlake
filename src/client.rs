@@ -1,12 +1,9 @@
+use crate::winhttp::{WinHttpConnection, WinHttpRequest, WinHttpSession};
 use core::ffi::c_void;
 use std::ffi::OsStr;
-
 use std::os::windows::ffi::OsStrExt;
-
-use windows::core::PCWSTR;
-
-use crate::winhttp::{WinHttpConnection, WinHttpRequest, WinHttpSession};
 use windows::core::Error;
+use windows::core::PCWSTR;
 
 pub struct Client {
     pub session: WinHttpSession,
@@ -111,4 +108,35 @@ pub struct Request<'a> {
     pub accept_type: &'a str,
     pub headers: Option<Vec<&'a str>>,
     pub body: Option<&'a str>,
+}
+
+impl<'a> Request<'a> {
+    pub fn new(
+        hostname: &'a str,
+        method: &'a str,
+        path: &'a str,
+        accept_type: &'a str,
+        headers: Option<Vec<&'a str>>,
+        body: Option<&'a str>,
+    ) -> Self {
+        Request {
+            hostname,
+            method,
+            path,
+            accept_type,
+            headers,
+            body,
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn create_client() {
+        let client_result =
+            Client::new("Agent", Some("example.com")).expect("Client creation failed");
+    }
 }

@@ -5,11 +5,15 @@ target = "x86_64-pc-windows-msvc"
 rustflags = [
   "-Z", "location-detail=none",
   "-Z", "fmt-debug=none",
+  "-C", "panic=abort",
+  "-Z", "panic_abort_tests"
 ]
 
 [target.x86_64-pc-windows-msvc]
 rustflags = [
   "-Z", "location-detail=none",
   "-Z", "fmt-debug=none",
+  "-C", "panic=abort",
+  "-Z", "panic_abort_tests"
 ]
 
