@@ -175,7 +175,7 @@ mod tests {
     fn utf16_conversion() {
         let input = "Convert this!";
         let utf16 = utf8_to_utf16(input);
-        assert_eq!(input.last(), Some(&0), "Null termination is not valid");
+        assert_eq!(utf16.last(), Some(&0), "Null termination is not valid");
 
         let without_null = &utf16[..utf16.len() - 1];
         let decoded = String::from_utf16(without_null).expect("Failed to decode UTF-16");
