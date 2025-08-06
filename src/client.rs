@@ -143,9 +143,7 @@ mod tests {
     fn create_client_without_hostname() {
         let client = Client::new("TestAgent", None)
             .expect("Client creation without hostname should succeed");
-
-        assert!(client.connection.is_some());
-        assert!(client.host_utf16.is_some());
+        assert!(client.host_utf16.is_none());
 
         assert!(client.connection.is_none());
         assert_eq!(

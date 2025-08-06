@@ -11,9 +11,9 @@ use windows::core::*;
 // Receive the response with WinHttpReceiveResponse
 // Read the response using WinHttpReadData
 
-type HINTERNET = *mut c_void;
+pub type HINTERNET = *mut c_void;
 
-pub struct WinHttpSession(HINTERNET);
+pub struct WinHttpSession(pub HINTERNET);
 
 impl WinHttpSession {
     pub fn new(agent: PCWSTR) -> Result<Self> {
