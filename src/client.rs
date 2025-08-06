@@ -184,22 +184,15 @@ mod tests {
 
     #[test]
     fn send_actual_request() {
-        let mut client = match Client::new("Agent", None) {
-            Ok(client) => client,
-            Err(e) => {
-                let message = e.message().to_string();
-                eprintln!("Error while creating client: {message}");
-                return;
-            }
-        };
+        let mut client = Client::new("Agent", None).unwrap_or_else(|e| {
+            panic!("Failed to create client: {}", e.message());
+        });
 
-        let headers: Vec<&str> = vec!["Hello: asd"];
-        let request = Request::new("192.168.156.136", "GET", "/", "*/*", Some(headers), None);
+        let headers = vec!["Hello: asd"];
+        let request = Request::new("httpbin.org/get", "GET", "/", "*/*", Some(headers), None);
 
-        if let Err(e) = client.send_request(request) {
-            let message = e.message().to_string();
-            eprintln!("Request failed: {message}");
-            return;
-        }
+        client.send_request(request).unwrap_or_else(|e| {
+            panic!("Request failed: {}", e.message());
+        });
     }
 }
