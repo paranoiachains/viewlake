@@ -190,10 +190,16 @@ mod tests {
 
     #[test]
     fn send_actual_request() {
-        let mut client = Client::new("Agent", None);
+        let mut client = match Client::new("Agent", None) {
+            Ok(client) => client,
+            Err(_) => panic!("fuck client"),
+        };
+
         let headers = vec!["Hello: asd"];
         let request = Request::new("httpbin.org/get", "GET", "/", "*/*", Some(headers), None);
 
-        client.send_request(request);
+        if let Err(e) = client.send_request(request) {
+            panic!("Fuck sending")
+        }
     }
 }
