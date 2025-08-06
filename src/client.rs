@@ -81,18 +81,18 @@ impl Client {
 
         let headers_wide: Option<&[u16]> = headers_joined.as_ref().map(|v| v.as_slice());
 
-        let (body_ptr, body_len): (*const c_void, u32) = if let Some(b) = request.body {
+        let body = if let Some(b) = request.body {
             let bytes = b.as_bytes();
             if !bytes.is_empty() {
-                (bytes.as_ptr() as *const c_void, bytes.len() as u32)
+                Some((bytes.as_ptr() as *const c_void, bytes.len() as u32))
             } else {
-                (std::ptr::null(), 0)
+                None
             }
         } else {
-            (std::ptr::null(), 0)
+            None
         };
 
-        request_handle.send(headers_wide, Some((body_ptr, body_len)))?;
+        request_handle.send(headers_wide, body)?;
         request_handle.receive()?;
 
         const BUF_LEN: u32 = 256;
