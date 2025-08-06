@@ -227,7 +227,7 @@ mod tests {
         let headers_u16: Vec<u16> = concat_pcwstr(headers_vec);
         let headers_slice: &[u16] = &headers_u16;
         unsafe {
-            let a = WinHttpAddRequestHeaders(request, headers_slice, WINHTTP_ADDREQ_FLAG_ADD)
+            let a = WinHttpAddRequestHeaders(request.0, headers_slice, WINHTTP_ADDREQ_FLAG_ADD)
                 .expect("Failed to add headers to request");
 
             request.send(None, None).unwrap();
