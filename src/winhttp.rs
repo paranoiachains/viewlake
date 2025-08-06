@@ -196,4 +196,52 @@ mod tests {
             io::stdout().write_all(&buf).unwrap();
         }
     }
+
+    fn concat_pcwstr(headers: Vec<PCWSTR>) -> Vec<u16> {
+        let mut combined: Vec<u16> = Vec::new();
+
+        for pcwstr in headers {
+            // SAFELY read each PCWSTR string into a &U16 slice
+            unsafe {
+                let mut ptr = pcwstr.0;
+                while !ptr.is_null() && *ptr != 0 {
+                    combined.push(*ptr);
+                    ptr = ptr.add(1);
+                }
+            }
+        }
+
+        // Null-terminate the result, because WinHTTP expects headers to be null-terminated
+        combined.push(0);
+        combined
+    }
+
+    #[test]
+    fn send_request_with_headers() {
+        let session = WinHttpSession::new(w!("TestAgent")).unwrap();
+        let connection = WinHttpConnection::new(&session, w!("www.example.com")).unwrap();
+        let request =
+            WinHttpRequest::new(&connection, w!("GET"), w!("/"), std::ptr::null()).unwrap();
+
+        let headers_vec: Vec<PCWSTR> = vec![w!("Header: 1\r\n"), w!("Header: 2\r\n")];
+        let headers_u16: Vec<u16> = concat_pcwstr(headers_vec);
+        let headers_slice: &[u16] = &headers_u16;
+        unsafe {
+            let a = WinHttpAddRequestHeaders(request, headers_slice, WINHTTP_ADDREQ_FLAG_ADD)
+                .expect("Failed to add headers to request");
+
+            request.send(None, None).unwrap();
+            request.receive().unwrap();
+
+            let mut buf = [0u8; 4096];
+            request
+                .read_response(buf.as_mut_ptr() as *mut _, buf.len() as u32)
+                .unwrap();
+            if let Ok(text) = std::str::from_utf8(&buf) {
+                println!("{text}");
+            } else {
+                io::stdout().write_all(&buf).unwrap();
+            }
+        }
+    }
 }
