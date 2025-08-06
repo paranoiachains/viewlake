@@ -242,4 +242,29 @@ mod tests {
             }
         }
     }
+
+    #[test]
+    fn send_request_with_body() {
+        let session = WinHttpSession::new(w!("TestAgent")).unwrap();
+        let connection = WinHttpConnection::new(&session, w!("www.example.com")).unwrap();
+        let request =
+            WinHttpRequest::new(&connection, w!("GET"), w!("/"), std::ptr::null()).unwrap();
+
+        let body = "asd";
+        let body_ptr = body.as_bytes().as_ptr() as *const c_void;
+        let body_len = body.as_bytes().len() as u32;
+
+        request.send(None, Some((body_ptr, body_len))).unwrap();
+        request.receive().unwrap();
+
+        let mut buf = [0u8; 4096];
+        request
+            .read_response(buf.as_mut_ptr() as *mut _, buf.len() as u32)
+            .unwrap();
+        if let Ok(text) = std::str::from_utf8(&buf) {
+            println!("{text}");
+        } else {
+            io::stdout().write_all(&buf).unwrap();
+        }
+    }
 }
