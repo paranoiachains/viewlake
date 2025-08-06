@@ -181,4 +181,25 @@ mod tests {
         let decoded = String::from_utf16(without_null).expect("Failed to decode UTF-16");
         assert_eq!(decoded, input, "UTF-16 conversion mismatch");
     }
+
+    #[test]
+    fn send_actual_request() {
+        let mut client = match Client::new("Agent", None) {
+            Ok(client) => client,
+            Err(e) => {
+                let message = e.message().to_string();
+                eprintln!("Error while creating client: {message}");
+                return;
+            }
+        };
+
+        let headers: Vec<&str> = vec!["Hello: asd"];
+        let request = Request::new("192.168.156.136", "GET", "/", "*/*", Some(headers), None);
+
+        if let Err(e) = client.send_request(request) {
+            let message = e.message().to_string();
+            eprintln!("Request failed: {message}");
+            return;
+        }
+    }
 }
