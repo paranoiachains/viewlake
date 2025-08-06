@@ -117,28 +117,23 @@ impl WinHttpRequest {
                 None => (None, 0),
             };
 
-            let ok = WinHttpSendRequest(self.0, headers_ptr, body_ptr, body_len, body_len, 0);
-            if let Err(_) = ok {
-                return Err(Error::from_win32());
-            }
+            WinHttpSendRequest(self.0, headers_ptr, body_ptr, body_len, body_len, 0)?;
 
             Ok(())
         }
     }
 
     pub fn receive(&self) -> Result<()> {
-        unsafe { WinHttpReceiveResponse(self.0, std::ptr::null_mut() as *mut c_void) }
+        unsafe {
+            WinHttpReceiveResponse(self.0, std::ptr::null_mut() as *mut c_void)?;
+        }
     }
 
     pub fn read_response(&self, buf: *mut c_void, buf_len: u32) -> Result<()> {
         unsafe {
             let mut bytes_read: u32 = 0;
 
-            let ok = WinHttpReadData(self.0, buf, buf_len, &mut bytes_read);
-
-            if let Err(_) = ok {
-                return Err(Error::from_win32());
-            }
+            WinHttpReadData(self.0, buf, buf_len, &mut bytes_read)?;
 
             Ok(())
         }
