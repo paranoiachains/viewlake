@@ -173,7 +173,8 @@ mod tests {
 
     #[test]
     fn utf16_conversion() {
-        let input = utf8_to_utf16("Convert this!");
+        let input = "Convert this!";
+        let utf16 = utf8_to_utf16(input);
         assert_eq!(input.last(), Some(&0), "Null termination is not valid");
 
         let without_null = &utf16[..utf16.len() - 1];
