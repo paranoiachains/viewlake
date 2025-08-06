@@ -211,8 +211,6 @@ mod tests {
             }
         }
 
-        // Null-terminate the result, because WinHTTP expects headers to be null-terminated
-        combined.push(0);
         combined
     }
 
@@ -225,7 +223,7 @@ mod tests {
 
         let headers_vec: Vec<PCWSTR> = vec![w!("Header: 1\r\n"), w!("Header: 2\r\n")];
         let headers_u16: Vec<u16> = concat_pcwstr(headers_vec);
-        let headers_slice: &[u16] = &headers_u16;
+        let headers_slice: &[u16] = headers_u16.as_slice();
         unsafe {
             let a = WinHttpAddRequestHeaders(request.0, headers_slice, WINHTTP_ADDREQ_FLAG_ADD)
                 .expect("Failed to add headers to request");
