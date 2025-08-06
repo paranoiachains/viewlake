@@ -1,5 +1,4 @@
 use std::os::raw::c_void;
-use windows::Win32::Foundation::GetLastError;
 use windows::Win32::Networking::WinHttp::*;
 use windows::core::*;
 
@@ -27,7 +26,7 @@ impl WinHttpSession {
             );
 
             if session.is_null() {
-                Err(GetLastError().unwrap_err())
+                return Err(Error::from_win32());
             } else {
                 Ok(Self(session))
             }
@@ -58,11 +57,11 @@ impl WinHttpConnection {
             let handle = WinHttpConnect(session.0, hostname, INTERNET_DEFAULT_HTTPS_PORT, 0);
 
             if handle.is_null() {
-                Err(GetLastError().unwrap_err())
+                return Err(Error::from_win32());
             } else {
                 Ok(Self {
                     handle,
-                    hostname: hostname.to_string().unwrap(),
+                    hostname: hostname.to_string().expect("hostname is not a valid utf16"),
                 })
             }
         }
@@ -96,7 +95,7 @@ impl WinHttpRequest {
             );
 
             if request.is_null() {
-                return Err(GetLastError().unwrap_err());
+                return Err(Error::from_win32());
             }
             Ok(Self(request))
         }
@@ -119,8 +118,8 @@ impl WinHttpRequest {
             };
 
             let ok = WinHttpSendRequest(self.0, headers_ptr, body_ptr, body_len, body_len, 0);
-            if let Err(e) = ok {
-                return Err(e);
+            if let Err(_) = ok {
+                return Err(Error::from_win32());
             }
 
             Ok(())
@@ -137,8 +136,8 @@ impl WinHttpRequest {
 
             let ok = WinHttpReadData(self.0, buf, buf_len, &mut bytes_read);
 
-            if let Err(e) = ok {
-                return Err(e);
+            if let Err(_) = ok {
+                return Err(Error::from_win32());
             }
 
             Ok(())
