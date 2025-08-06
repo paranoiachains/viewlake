@@ -133,9 +133,9 @@ impl WinHttpRequest {
 
     pub fn read_response(&self, buf: *mut c_void, buf_len: u32) -> Result<()> {
         unsafe {
-            let bytes_read: *mut u32 = 0 as *mut u32;
+            let mut bytes_read: u32 = 0;
 
-            let ok = WinHttpReadData(self.0, buf, buf_len, bytes_read);
+            let ok = WinHttpReadData(self.0, buf, buf_len, &mut bytes_read);
 
             if let Err(e) = ok {
                 return Err(e);
