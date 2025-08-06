@@ -149,3 +149,44 @@ impl Drop for WinHttpRequest {
         unsafe { WinHttpCloseHandle(self.0).unwrap() }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn create_session() {
+        let agent = w!("TestAgent");
+        let session = WinHttpSession::new(agent).expect("Failed to create session");
+        assert!(!session.0.is_null(), "Session handle is null");
+    }
+
+    #[test]
+    fn create_connection() {
+        let agent = w!("TestAgent");
+        let session = WinHttpSession::new(agent).expect("Failed to create session");
+
+        let hostname = w!("www.example.com");
+        let connection =
+            WinHttpConnection::new(&session, hostname).expect("Failed to create connection");
+
+        assert!(!connection.handle.is_null(), "Connection handle is null");
+        assert_eq!(connection.hostname, "www.example.com");
+    }
+
+    #[test]
+    fn create_request_and_send() {
+        let session = WinHttpSession::new(w!("TestAgent")).unwrap();
+        let connection = WinHttpConnection::new(&session, w!("www.example.com")).unwrap();
+        let request =
+            WinHttpRequest::new(&connection, w!("GET"), w!("/"), std::ptr::null()).unwrap();
+
+        request.send(None, None).unwrap();
+        request.receive().unwrap();
+
+        let mut buf = [0u8; 4096];
+        request
+            .read_response(buf.as_mut_ptr() as *mut _, buf.len() as u32)
+            .unwrap();
+    }
+}
