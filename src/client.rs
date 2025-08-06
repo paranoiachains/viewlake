@@ -139,4 +139,37 @@ mod tests {
         let client_result =
             Client::new("Agent", Some("example.com")).expect("Client creation failed");
     }
+    #[test]
+    fn create_client_without_hostname() {
+        let client = Client::new("TestAgent", None)
+            .expect("Client creation without hostname should succeed");
+
+        assert!(client.connection.is_some());
+        assert!(client.host_utf16.is_some());
+
+        assert!(client.connection.is_none());
+        assert_eq!(
+            client.agent_utf16.last(),
+            Some(&0),
+            "UTF-16 should be null-terminated"
+        );
+    }
+
+    #[test]
+    fn create_request() {
+        let headers = vec!["Content-Type: application/json", "Accept: */*"];
+        let request = Request::new(
+            "example.com",
+            "GET",
+            "/api/test",
+            "application/json",
+            Some(headers.clone()),
+            Some("{\"key\":\"value\"}"),
+        );
+
+        assert_eq!(request.method, "GET");
+        assert_eq!(request.path, "/api/test");
+        assert_eq!(request.body, Some("{\"key\":\"value\"}"));
+        assert_eq!(request.headers.as_ref().unwrap(), &headers);
+    }
 }
