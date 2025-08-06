@@ -190,15 +190,10 @@ mod tests {
 
     #[test]
     fn send_actual_request() {
-        let mut client = Client::new("Agent", None).unwrap_or_else(|e| {
-            panic!("Failed to create client: {}", e.message());
-        });
-
+        let mut client = Client::new("Agent", None);
         let headers = vec!["Hello: asd"];
         let request = Request::new("httpbin.org/get", "GET", "/", "*/*", Some(headers), None);
 
-        client.send_request(request).unwrap_or_else(|e| {
-            panic!("Request failed: {}", e.message());
-        });
+        client.send_request(request);
     }
 }
