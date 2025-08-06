@@ -193,7 +193,7 @@ mod tests {
         if let Ok(text) = std::str::from_utf8(&buf) {
             println!("{text}");
         } else {
-            io::stdout().write_all(buf).unwrap();
+            io::stdout().write_all(&buf).unwrap();
         }
     }
 }
