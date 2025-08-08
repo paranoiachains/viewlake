@@ -1,6 +1,6 @@
 use crate::winhttp::{WinHttpConnection, WinHttpRequest, WinHttpSession, concat_pcwstr};
-use std::os::raw::c_void;
-use windows::core::{Error, PCWSTR, w};
+use std::{io::Write, os::raw::c_void};
+use windows::core::{Error, HSTRING, PCWSTR, w};
 
 pub struct Client {
     pub session: WinHttpSession,
@@ -11,6 +11,8 @@ const DEFAULT_AGENT: PCWSTR = w!(
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
 );
 
+pub struct RequestHandle(WinHttpRequest);
+
 impl Client {
     pub fn new() -> Result<Self, Error> {
         let session = WinHttpSession::new(DEFAULT_AGENT)?;
@@ -20,7 +22,7 @@ impl Client {
         })
     }
 
-    pub fn send_request(&mut self, request: Request) -> Result<(), Error> {
+    pub fn send_request(&mut self, request: Request) -> Result<RequestHandle, Error> {
         let hostname = &request.hostname;
 
         let connection = match &self.connection {
@@ -42,8 +44,21 @@ impl Client {
         });
 
         win_request.send(headers.as_ref().map(|t| t.as_slice()), body)?;
+        Ok(RequestHandle(win_request))
+    }
 
-        Ok(())
+    pub fn receive_response(&self, handle: &WinHttpRequest) -> Result<Response, Error> {
+        handle.receive()?;
+
+        let mut buf = [0u8; 4096];
+        handle.read_response(buf.as_mut_ptr() as *mut _, buf.len() as u32)?;
+
+        match std::str::from_utf8(&buf) {
+            Ok(data) => Ok(Response {
+                data: data.to_string(),
+            }),
+            Err(_) => Err(Error::new(windows::core::HRESULT(1), HSTRING::new())),
+        }
     }
 }
 
@@ -53,4 +68,42 @@ pub struct Request<'a> {
     pub path: PCWSTR,
     pub headers: Option<Vec<PCWSTR>>, // \r\n at the end of each header
     pub body: Option<&'a str>,
+}
+
+pub struct Response {
+    pub data: String,
+}
+
+impl Response {
+    pub fn read_response_into_stdout(&self) {
+        std::io::stdout().write_all(self.data.as_bytes()).unwrap();
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn create_client() {
+        Client::new().expect("Client creation error");
+    }
+
+    #[test]
+    fn send_request() {
+        let mut client = Client::new().expect("Client creation error");
+        let request = Request {
+            hostname: w!("example.com"),
+            method: w!("GET"),
+            path: w!("/"),
+            headers: Some(vec![w!("Header 1: sad\r\n"), w!("Header 2: asd\r\n")]),
+            body: Some("Body"),
+        };
+        let handle = client.send_request(request).expect("Send request error");
+        let response = client
+            .receive_response(&handle.0)
+            .expect("Receive response error");
+
+        response.read_response_into_stdout();
+    }
 }

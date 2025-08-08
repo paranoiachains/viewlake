@@ -34,12 +34,6 @@ impl WinHttpSession {
     }
 }
 
-impl Into<HINTERNET> for WinHttpSession {
-    fn into(self) -> HINTERNET {
-        self.0
-    }
-}
-
 impl Drop for WinHttpSession {
     fn drop(&mut self) {
         unsafe { WinHttpCloseHandle(self.0).unwrap() }
@@ -132,12 +126,6 @@ impl WinHttpRequest {
 
             Ok(())
         }
-    }
-}
-
-impl Into<HINTERNET> for WinHttpRequest {
-    fn into(self) -> HINTERNET {
-        self.0
     }
 }
 
