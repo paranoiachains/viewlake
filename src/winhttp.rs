@@ -1,5 +1,4 @@
 use std::os::raw::c_void;
-use widestring::Utf16String;
 use windows::Win32::Networking::WinHttp::*;
 use windows::core::*;
 
@@ -15,11 +14,18 @@ type HINTERNET = *mut c_void;
 
 pub struct WinHttpSession(HINTERNET);
 
+fn to_pcwstr(s: &str) -> PCWSTR {
+    let mut s_utf16: Vec<u16> = s.encode_utf16().collect();
+    s_utf16.push(0);
+
+    PCWSTR::from_raw(s_utf16.as_ptr())
+}
+
 impl WinHttpSession {
-    pub fn new(agent: PCWSTR) -> Result<Self> {
+    pub fn new(agent: &str) -> Result<Self> {
         unsafe {
             let session = WinHttpOpen(
-                agent,
+                to_pcwstr(agent),
                 WINHTTP_ACCESS_TYPE_NO_PROXY,
                 PCWSTR::null(), // WINHTTP_NO_PROXY_NAME
                 PCWSTR::null(), // WINHTTP_NO_PROXY_BYPASS
@@ -47,16 +53,21 @@ pub struct WinHttpConnection {
 }
 
 impl WinHttpConnection {
-    pub fn new(session: &WinHttpSession, hostname: PCWSTR) -> Result<Self> {
+    pub fn new(session: &WinHttpSession, hostname: &str) -> Result<Self> {
         unsafe {
-            let handle = WinHttpConnect(session.0, hostname, INTERNET_DEFAULT_HTTPS_PORT, 0);
+            let handle = WinHttpConnect(
+                session.0,
+                to_pcwstr(hostname),
+                INTERNET_DEFAULT_HTTPS_PORT,
+                0,
+            );
 
             if handle.is_null() {
                 return Err(Error::from_win32());
             } else {
                 Ok(Self {
                     handle,
-                    hostname: hostname.to_string().expect("hostname is not a valid utf16"),
+                    hostname: hostname.to_string(),
                 })
             }
         }
@@ -72,14 +83,14 @@ impl Drop for WinHttpConnection {
 pub struct WinHttpRequest(HINTERNET);
 
 impl WinHttpRequest {
-    pub fn new(connection: &WinHttpConnection, method: PCWSTR, path: PCWSTR) -> Result<Self> {
+    pub fn new(connection: &WinHttpConnection, method: &str, path: &str) -> Result<Self> {
         unsafe {
             let null = PCWSTR::null();
             let null_accept: *const PCWSTR = &null as *const PCWSTR;
             let request = WinHttpOpenRequest(
                 connection.handle,
-                method,
-                path,
+                to_pcwstr(method),
+                to_pcwstr(path),
                 PCWSTR::null(), // HTTP version (1.1)
                 PCWSTR::null(), // Referer
                 null_accept,    // Accept
@@ -96,9 +107,15 @@ impl WinHttpRequest {
     pub fn send(
         &self,
         headers: Option<Vec<String>>,
-        body: Option<(*const c_void, u32)>, // pointer + length of body
+        body: Option<String>, // pointer + length of body
     ) -> Result<()> {
-        let (body_ptr, body_len) = match body {
+        let body_option = body.map(|body_str| {
+            let body_ptr = body_str.as_bytes().as_ptr() as *const c_void;
+            let body_len = body_str.as_bytes().len() as u32;
+            (body_ptr, body_len)
+        });
+
+        let (body_ptr, body_len) = match body_option {
             Some((ptr, len)) => (Some(ptr), len),
             None => (None, 0),
         };
@@ -158,17 +175,17 @@ mod tests {
 
     #[test]
     fn create_session() {
-        let agent = w!("TestAgent");
+        let agent = "TestAgent";
         let session = WinHttpSession::new(agent).expect("Failed to create session");
         assert!(!session.0.is_null(), "Session handle is null");
     }
 
     #[test]
     fn create_connection() {
-        let agent = w!("TestAgent");
+        let agent = "TestAgent";
         let session = WinHttpSession::new(agent).expect("Failed to create session");
 
-        let hostname = w!("www.example.com");
+        let hostname = "www.example.com";
         let connection =
             WinHttpConnection::new(&session, hostname).expect("Failed to create connection");
 
@@ -178,9 +195,9 @@ mod tests {
 
     #[test]
     fn create_request_and_send() {
-        let session = WinHttpSession::new(w!("TestAgent")).unwrap();
-        let connection = WinHttpConnection::new(&session, w!("www.example.com")).unwrap();
-        let request = WinHttpRequest::new(&connection, w!("GET"), w!("/")).unwrap();
+        let session = WinHttpSession::new("TestAgent").unwrap();
+        let connection = WinHttpConnection::new(&session, "www.example.com").unwrap();
+        let request = WinHttpRequest::new(&connection, "GET", "/").unwrap();
 
         request.send(None, None).unwrap();
         request.receive().unwrap();
@@ -198,38 +215,34 @@ mod tests {
 
     #[test]
     fn send_request_with_headers() {
-        let session = WinHttpSession::new(w!("TestAgent")).unwrap();
-        let connection = WinHttpConnection::new(&session, w!("www.example.com")).unwrap();
-        let request = WinHttpRequest::new(&connection, w!("GET"), w!("/")).unwrap();
+        let session = WinHttpSession::new("TestAgent").unwrap();
+        let connection = WinHttpConnection::new(&session, "www.example.com").unwrap();
+        let request = WinHttpRequest::new(&connection, "GET", "/").unwrap();
 
         let headers_vec: Vec<String> = vec![String::from("Header: 1")];
-        unsafe {
-            request.send(Some(headers_vec), None).unwrap();
-            request.receive().unwrap();
+        request.send(Some(headers_vec), None).unwrap();
+        request.receive().unwrap();
 
-            let mut buf = [0u8; 4096];
-            request
-                .read(buf.as_mut_ptr() as *mut _, buf.len() as u32)
-                .unwrap();
-            if let Ok(text) = std::str::from_utf8(&buf) {
-                println!("{text}");
-            } else {
-                io::stdout().write_all(&buf).unwrap();
-            }
+        let mut buf = [0u8; 4096];
+        request
+            .read(buf.as_mut_ptr() as *mut _, buf.len() as u32)
+            .unwrap();
+        if let Ok(text) = std::str::from_utf8(&buf) {
+            println!("{text}");
+        } else {
+            io::stdout().write_all(&buf).unwrap();
         }
     }
 
     #[test]
     fn send_request_with_body() {
-        let session = WinHttpSession::new(w!("TestAgent")).unwrap();
-        let connection = WinHttpConnection::new(&session, w!("www.example.com")).unwrap();
-        let request = WinHttpRequest::new(&connection, w!("GET"), w!("/")).unwrap();
+        let session = WinHttpSession::new("TestAgent").unwrap();
+        let connection = WinHttpConnection::new(&session, "www.example.com").unwrap();
+        let request = WinHttpRequest::new(&connection, "GET", "/").unwrap();
 
-        let body = "asd";
-        let body_ptr = body.as_bytes().as_ptr() as *const c_void;
-        let body_len = body.as_bytes().len() as u32;
+        let body = "asd".to_string();
 
-        request.send(None, Some((body_ptr, body_len))).unwrap();
+        request.send(None, Some(body)).unwrap();
         request.receive().unwrap();
 
         let mut buf = [0u8; 4096];

@@ -1,15 +1,12 @@
 use crate::winhttp::{WinHttpConnection, WinHttpRequest, WinHttpSession};
-use std::{io::Write, os::raw::c_void};
-use windows::core::{Error, HSTRING, PCWSTR, w};
+use windows::core::{Error, HSTRING};
 
 pub struct Client {
     pub session: WinHttpSession,
     pub connection: Option<WinHttpConnection>, // Store hostname with connection
 }
 
-const DEFAULT_AGENT: PCWSTR = w!(
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-);
+const DEFAULT_AGENT: &'static str = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
 
 pub struct RequestHandle(WinHttpRequest);
 
@@ -23,23 +20,16 @@ impl Client {
     }
 
     pub fn send_request(&mut self, request: Request) -> Result<RequestHandle, Error> {
-        let hostname = &request.hostname;
-
         let connection = match &self.connection {
-            Some(conn) if conn.hostname == unsafe { hostname.to_string().unwrap() } => conn,
-            _ => &WinHttpConnection::new(&self.session, *hostname)
+            Some(conn) if conn.hostname == request.hostname => conn,
+            _ => &WinHttpConnection::new(&self.session, request.hostname.as_str())
                 .expect("Connection creation failed."),
         };
 
-        let win_request = WinHttpRequest::new(&connection, request.method, request.path)?;
+        let win_request =
+            WinHttpRequest::new(&connection, request.method.as_str(), request.path.as_str())?;
 
-        let body = request.body.map(|body_str| {
-            let body_ptr = body_str.as_bytes().as_ptr() as *const c_void;
-            let body_len = body_str.as_bytes().len() as u32;
-            (body_ptr, body_len)
-        });
-
-        win_request.send(request.headers, body)?;
+        win_request.send(request.headers, request.body)?;
         Ok(RequestHandle(win_request))
     }
 
@@ -58,12 +48,12 @@ impl Client {
     }
 }
 
-pub struct Request<'a> {
-    pub hostname: PCWSTR,
-    pub method: PCWSTR,
-    pub path: PCWSTR,
+pub struct Request {
+    pub hostname: String,
+    pub method: String,
+    pub path: String,
     pub headers: Option<Vec<String>>, // \r\n at the end of each header
-    pub body: Option<&'a str>,
+    pub body: Option<String>,
 }
 
 pub struct Response {
@@ -89,11 +79,11 @@ mod tests {
     fn send_request() {
         let mut client = Client::new().expect("Client creation error");
         let request = Request {
-            hostname: w!("httpbin.org"),
-            method: w!("GET"),
-            path: w!("/anything"),
+            hostname: String::from("httpbin.org"),
+            method: String::from("GET"),
+            path: String::from("/anything"),
             headers: Some(vec![String::from("Header1: 1"), String::from("Header2: 2")]),
-            body: Some("Body"),
+            body: Some("Body".to_string()),
         };
         let handle = client.send_request(request).expect("Send request error");
         let response = client
