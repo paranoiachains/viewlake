@@ -62,7 +62,7 @@ pub struct Response {
 
 impl Response {
     pub fn read_response_into_stdout(&self) {
-        std::io::stdout().write_all(self.data.as_bytes()).unwrap();
+        std::io::stdout().write(self.data.as_bytes()).unwrap();
     }
 }
 
