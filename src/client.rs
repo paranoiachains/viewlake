@@ -89,10 +89,10 @@ mod tests {
     fn send_request() {
         let mut client = Client::new().expect("Client creation error");
         let request = Request {
-            hostname: w!("example.com"),
+            hostname: w!("httpbin.org"),
             method: w!("GET"),
-            path: w!("/"),
-            headers: Some(vec![String::from("Header1: 1")]),
+            path: w!("/anything"),
+            headers: Some(vec![String::from("Header1: 1"), String::from("Header2: 2")]),
             body: Some("Body"),
         };
         let handle = client.send_request(request).expect("Send request error");

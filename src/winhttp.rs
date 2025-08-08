@@ -150,27 +150,6 @@ impl Drop for WinHttpRequest {
     }
 }
 
-pub fn concat_pcwstr(headers: Vec<PCWSTR>) -> Vec<u16> {
-    let mut combined: Vec<u16> = Vec::new();
-
-    for pcwstr in headers {
-        unsafe {
-            let mut ptr = pcwstr.as_ptr();
-            while !ptr.is_null() && *ptr != 0 {
-                combined.push(*ptr);
-                ptr = ptr.add(1);
-            }
-        }
-        // Ensure each header ends with \r\n
-        if !combined.ends_with(&[b'\r' as u16, b'\n' as u16]) {
-            combined.push(b'\r' as u16);
-            combined.push(b'\n' as u16);
-        }
-    }
-
-    combined
-}
-
 #[cfg(test)]
 mod tests {
     use std::io::{self, Write};
