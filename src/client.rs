@@ -7,13 +7,11 @@ pub struct Client {
     pub connection: Option<WinHttpConnection>, // Store hostname with connection
 }
 
-const DEFAULT_AGENT: &'static str = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
-
 pub struct RequestHandle(WinHttpRequest);
 
 impl Client {
     pub fn new() -> Result<Self, Error> {
-        let session = WinHttpSession::new(DEFAULT_AGENT)?;
+        let session = WinHttpSession::new(String::from("asdagent"))?;
         Ok(Client {
             session,
             connection: None,
@@ -23,12 +21,11 @@ impl Client {
     pub fn send_request(&mut self, request: Request) -> Result<RequestHandle, Error> {
         let connection = match &self.connection {
             Some(conn) if conn.hostname == request.hostname => conn,
-            _ => &WinHttpConnection::new(&self.session, request.hostname.as_str())
+            _ => &WinHttpConnection::new(&self.session, request.hostname)
                 .expect("Connection creation failed."),
         };
 
-        let win_request =
-            WinHttpRequest::new(&connection, request.method.as_str(), request.path.as_str())?;
+        let win_request = WinHttpRequest::new(&connection, request.method, request.path)?;
 
         win_request.send(request.headers, request.body)?;
         Ok(RequestHandle(win_request))
