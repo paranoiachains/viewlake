@@ -97,18 +97,17 @@ impl WinHttpRequest {
         headers: Option<&[u16]>,
         body: Option<(*const c_void, u32)>, // pointer + length of body
     ) -> Result<()> {
+        let (body_ptr, body_len) = match body {
+            Some((ptr, len)) => (Some(ptr), len),
+            None => (None, 0),
+        };
         unsafe {
-            let headers_ptr = match headers {
-                Some(h) => Some(h),
-                None => None,
-            };
+            if let Some(headers_ptr) = headers {
+                WinHttpAddRequestHeaders(self.0, headers_ptr, WINHTTP_ADDREQ_FLAG_ADD)
+                    .expect("Failed to add headers to request");
+            }
 
-            let (body_ptr, body_len) = match body {
-                Some((ptr, len)) => (Some(ptr), len),
-                None => (None, 0),
-            };
-
-            WinHttpSendRequest(self.0, headers_ptr, body_ptr, body_len, body_len, 0)?;
+            WinHttpSendRequest(self.0, None, body_ptr, body_len, body_len, 0)?;
 
             Ok(())
         }
@@ -118,7 +117,7 @@ impl WinHttpRequest {
         unsafe { WinHttpReceiveResponse(self.0, std::ptr::null_mut() as *mut c_void) }
     }
 
-    pub fn read_response(&self, buf: *mut c_void, buf_len: u32) -> Result<()> {
+    pub fn read(&self, buf: *mut c_void, buf_len: u32) -> Result<()> {
         unsafe {
             let mut bytes_read: u32 = 0;
 
@@ -189,7 +188,7 @@ mod tests {
 
         let mut buf = [0u8; 4096];
         request
-            .read_response(buf.as_mut_ptr() as *mut _, buf.len() as u32)
+            .read(buf.as_mut_ptr() as *mut _, buf.len() as u32)
             .unwrap();
         if let Ok(text) = std::str::from_utf8(&buf) {
             println!("{text}");
@@ -216,7 +215,7 @@ mod tests {
 
             let mut buf = [0u8; 4096];
             request
-                .read_response(buf.as_mut_ptr() as *mut _, buf.len() as u32)
+                .read(buf.as_mut_ptr() as *mut _, buf.len() as u32)
                 .unwrap();
             if let Ok(text) = std::str::from_utf8(&buf) {
                 println!("{text}");
@@ -241,7 +240,7 @@ mod tests {
 
         let mut buf = [0u8; 4096];
         request
-            .read_response(buf.as_mut_ptr() as *mut _, buf.len() as u32)
+            .read(buf.as_mut_ptr() as *mut _, buf.len() as u32)
             .unwrap();
         if let Ok(text) = std::str::from_utf8(&buf) {
             println!("{text}");
