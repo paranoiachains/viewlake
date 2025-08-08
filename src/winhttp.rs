@@ -103,8 +103,7 @@ impl WinHttpRequest {
         };
 
         if let Some(headers_ptr) = headers {
-            self.add_headers(headers_ptr)
-                .expect("Error while adding headers");
+            self.add_headers(headers_ptr)?;
         }
 
         unsafe { WinHttpSendRequest(self.0, None, body_ptr, body_len, body_len, 0)? }
@@ -143,15 +142,16 @@ pub fn concat_pcwstr(headers: Vec<PCWSTR>) -> Vec<u16> {
     let mut combined: Vec<u16> = Vec::new();
 
     for pcwstr in headers {
-        // SAFELY read each PCWSTR string into a &U16 slice
         unsafe {
-            let mut ptr = pcwstr.0;
+            let mut ptr = pcwstr.as_ptr();
             while !ptr.is_null() && *ptr != 0 {
                 combined.push(*ptr);
                 ptr = ptr.add(1);
             }
         }
     }
+
+    combined.push(0);
 
     combined
 }
