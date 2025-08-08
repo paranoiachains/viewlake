@@ -113,21 +113,18 @@ impl WinHttpRequest {
     }
 
     fn add_headers(&self, headers: Vec<String>) -> Result<()> {
-        // Combine all headers into one UTF-16 vector
         let mut combined: Vec<u16> = Vec::new();
 
         for header in headers.iter() {
-            // Convert header to UTF-16 and append
             combined.extend(header.encode_utf16());
-            // Add CRLF after each header
             combined.push(b'\r' as u16);
             combined.push(b'\n' as u16);
         }
 
-        // Null-terminate the full block for WinHTTP
         combined.push(0);
 
-        // Pass &[u16] to WinHttpAddRequestHeaders
+        println!("headers: {:?}", combined);
+
         unsafe { WinHttpAddRequestHeaders(self.0, &combined, WINHTTP_ADDREQ_FLAG_ADD) }
     }
 
