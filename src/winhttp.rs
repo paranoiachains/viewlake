@@ -1,4 +1,5 @@
 use std::os::raw::c_void;
+use widestring::Utf16String;
 use windows::Win32::Networking::WinHttp::*;
 use windows::core::*;
 
@@ -94,7 +95,7 @@ impl WinHttpRequest {
 
     pub fn send(
         &self,
-        headers: Option<Vec<PCWSTR>>,
+        headers: Option<Vec<String>>,
         body: Option<(*const c_void, u32)>, // pointer + length of body
     ) -> Result<()> {
         let (body_ptr, body_len) = match body {
@@ -111,9 +112,23 @@ impl WinHttpRequest {
         Ok(())
     }
 
-    fn add_headers(&self, headers: Vec<PCWSTR>) -> Result<()> {
-        let headers_u16: Vec<u16> = concat_pcwstr(headers);
-        unsafe { WinHttpAddRequestHeaders(self.0, &headers_u16, WINHTTP_ADDREQ_FLAG_ADD) }
+    fn add_headers(&self, headers: Vec<String>) -> Result<()> {
+        // Combine all headers into one UTF-16 vector
+        let mut combined: Vec<u16> = Vec::new();
+
+        for header in headers.iter() {
+            // Convert header to UTF-16 and append
+            combined.extend(header.encode_utf16());
+            // Add CRLF after each header
+            combined.push(b'\r' as u16);
+            combined.push(b'\n' as u16);
+        }
+
+        // Null-terminate the full block for WinHTTP
+        combined.push(0);
+
+        // Pass &[u16] to WinHttpAddRequestHeaders
+        unsafe { WinHttpAddRequestHeaders(self.0, &combined, WINHTTP_ADDREQ_FLAG_ADD) }
     }
 
     pub fn receive(&self) -> Result<()> {
@@ -154,9 +169,6 @@ pub fn concat_pcwstr(headers: Vec<PCWSTR>) -> Vec<u16> {
             combined.push(b'\n' as u16);
         }
     }
-
-    // Add null terminator for PCWSTR compatibility
-    combined.push(0);
 
     combined
 }
@@ -213,14 +225,9 @@ mod tests {
         let connection = WinHttpConnection::new(&session, w!("www.example.com")).unwrap();
         let request = WinHttpRequest::new(&connection, w!("GET"), w!("/")).unwrap();
 
-        let headers_vec: Vec<PCWSTR> = vec![w!("Header: 1\r\n")];
-        let headers_u16: Vec<u16> = concat_pcwstr(headers_vec);
-        let headers_slice: &[u16] = headers_u16.as_slice();
+        let headers_vec: Vec<String> = vec![String::from("Header: 1")];
         unsafe {
-            WinHttpAddRequestHeaders(request.0, headers_slice, WINHTTP_ADDREQ_FLAG_ADD)
-                .expect("Failed to add headers to request");
-
-            request.send(None, None).unwrap();
+            request.send(Some(headers_vec), None).unwrap();
             request.receive().unwrap();
 
             let mut buf = [0u8; 4096];

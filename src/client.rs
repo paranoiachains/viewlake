@@ -62,7 +62,7 @@ pub struct Request<'a> {
     pub hostname: PCWSTR,
     pub method: PCWSTR,
     pub path: PCWSTR,
-    pub headers: Option<Vec<PCWSTR>>, // \r\n at the end of each header
+    pub headers: Option<Vec<String>>, // \r\n at the end of each header
     pub body: Option<&'a str>,
 }
 
@@ -92,7 +92,7 @@ mod tests {
             hostname: w!("example.com"),
             method: w!("GET"),
             path: w!("/"),
-            headers: Some(vec![w!("Header 1: sad\r\n"), w!("Header 2: asd\r\n")]),
+            headers: Some(vec![String::from("Header1: 1")]),
             body: Some("Body"),
         };
         let handle = client.send_request(request).expect("Send request error");
