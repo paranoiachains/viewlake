@@ -1,205 +1,56 @@
-use crate::winhttp::{WinHttpConnection, WinHttpRequest, WinHttpSession};
-use core::ffi::c_void;
-use std::ffi::OsStr;
-use std::os::windows::ffi::OsStrExt;
-use windows::core::Error;
-use windows::core::PCWSTR;
+use crate::winhttp::{WinHttpConnection, WinHttpRequest, WinHttpSession, concat_pcwstr};
+use std::os::raw::c_void;
+use windows::core::{Error, PCWSTR, w};
 
 pub struct Client {
     pub session: WinHttpSession,
-    pub connection: Option<WinHttpConnection>,
-    agent_utf16: Vec<u16>, // neccessary for utf16 conversions
-    host_utf16: Option<Vec<u16>>,
+    pub connection: Option<WinHttpConnection>, // Store hostname with connection
 }
 
-fn utf8_to_utf16(s: &str) -> Vec<u16> {
-    OsStr::new(s)
-        .encode_wide()
-        .chain(std::iter::once(0))
-        .collect()
-}
+const DEFAULT_AGENT: PCWSTR = w!(
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+);
 
 impl Client {
-    /// To establish connection immediately, provide hostname. Else, it will be established during
-    /// send_request method.
-    pub fn new(agent: &str, hostname: Option<&str>) -> Result<Self, Error> {
-        let agent_utf16 = utf8_to_utf16(agent);
-        let agent_wide = PCWSTR::from_raw(agent_utf16.as_ptr());
-
-        let session = WinHttpSession::new(agent_wide)?;
-
-        let (connection, host_utf16) = if let Some(host) = hostname {
-            let host_utf16 = utf8_to_utf16(host);
-            let host_wide = PCWSTR::from_raw(host_utf16.as_ptr());
-            let conn = WinHttpConnection::new(&session, host_wide)?;
-            (Some(conn), Some(host_utf16))
-        } else {
-            (None, None)
-        };
-
+    pub fn new() -> Result<Self, Error> {
+        let session = WinHttpSession::new(DEFAULT_AGENT)?;
         Ok(Client {
             session,
-            connection,
-            agent_utf16,
-            host_utf16,
+            connection: None,
         })
     }
 
     pub fn send_request(&mut self, request: Request) -> Result<(), Error> {
-        let host_utf16 = utf8_to_utf16(request.hostname);
-        let host_wide = PCWSTR::from_raw(host_utf16.as_ptr());
+        let hostname = &request.hostname;
 
-        match &self.connection {
-            Some(conn) => {
-                if conn.hostname != request.hostname {
-                    self.connection = Some(WinHttpConnection::new(&self.session, host_wide)?);
-                }
-            }
-            None => {
-                self.connection = Some(WinHttpConnection::new(&self.session, host_wide)?);
-            }
-        }
+        let connection = match &self.connection {
+            Some(conn) if conn.hostname == unsafe { hostname.to_string().unwrap() } => conn,
+            _ => &WinHttpConnection::new(&self.session, *hostname)
+                .expect("Connection creation failed."),
+        };
 
-        let method_utf16 = utf8_to_utf16(request.method);
-        let method_wide = PCWSTR::from_raw(method_utf16.as_ptr());
-        let path_utf16 = utf8_to_utf16(request.path);
-        let path_wide = PCWSTR::from_raw(path_utf16.as_ptr());
-        let accept_type_utf16 = utf8_to_utf16(request.accept_type);
-        let accept_type_wide = PCWSTR::from_raw(accept_type_utf16.as_ptr());
-
-        let request_handle = WinHttpRequest::new(
-            self.connection.as_ref().unwrap(),
-            method_wide,
-            path_wide,
-            &accept_type_wide,
-        )?;
-
-        let headers_joined = request.headers.map(|h| {
-            let joined = h.join("\r\n");
-            utf8_to_utf16(joined.as_str())
+        let win_request = WinHttpRequest::new(&connection, request.method, request.path)?;
+        let headers = request.headers.map(|headers_pcwstr| {
+            let headers_u16 = concat_pcwstr(headers_pcwstr);
+            headers_u16
         });
 
-        let headers_wide: Option<&[u16]> = headers_joined.as_ref().map(|v| v.as_slice());
+        let body = request.body.map(|body_str| {
+            let body_ptr = body_str.as_bytes().as_ptr() as *const c_void;
+            let body_len = body_str.as_bytes().len() as u32;
+            (body_ptr, body_len)
+        });
 
-        let body = if let Some(b) = request.body {
-            let bytes = b.as_bytes();
-            if !bytes.is_empty() {
-                Some((bytes.as_ptr() as *const c_void, bytes.len() as u32))
-            } else {
-                None
-            }
-        } else {
-            None
-        };
-
-        request_handle.send(headers_wide, body)?;
-        request_handle.receive()?;
-
-        const BUF_LEN: u32 = 256;
-
-        let buf = [0u16; BUF_LEN as usize].as_ptr() as *mut c_void;
-
-        if let Err(e) = request_handle.read_response(buf, BUF_LEN) {
-            return Err(e);
-        };
+        win_request.send(headers.as_ref().map(|t| t.as_slice()), body)?;
 
         Ok(())
     }
 }
 
 pub struct Request<'a> {
-    pub hostname: &'a str,
-    pub method: &'a str,
-    pub path: &'a str,
-    pub accept_type: &'a str,
-    pub headers: Option<Vec<&'a str>>,
+    pub hostname: PCWSTR,
+    pub method: PCWSTR,
+    pub path: PCWSTR,
+    pub headers: Option<Vec<PCWSTR>>, // \r\n at the end of each header
     pub body: Option<&'a str>,
-}
-
-impl<'a> Request<'a> {
-    pub fn new(
-        hostname: &'a str,
-        method: &'a str,
-        path: &'a str,
-        accept_type: &'a str,
-        headers: Option<Vec<&'a str>>,
-        body: Option<&'a str>,
-    ) -> Self {
-        Request {
-            hostname,
-            method,
-            path,
-            accept_type,
-            headers,
-            body,
-        }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn create_client() {
-        let client_result =
-            Client::new("Agent", Some("example.com")).expect("Client creation failed");
-    }
-    #[test]
-    fn create_client_without_hostname() {
-        let client = Client::new("TestAgent", None)
-            .expect("Client creation without hostname should succeed");
-        assert!(client.host_utf16.is_none());
-
-        assert!(client.connection.is_none());
-        assert_eq!(
-            client.agent_utf16.last(),
-            Some(&0),
-            "UTF-16 should be null-terminated"
-        );
-    }
-
-    #[test]
-    fn create_request() {
-        let headers = vec!["Content-Type: application/json", "Accept: */*"];
-        let request = Request::new(
-            "example.com",
-            "GET",
-            "/api/test",
-            "application/json",
-            Some(headers.clone()),
-            Some("{\"key\":\"value\"}"),
-        );
-
-        assert_eq!(request.method, "GET");
-        assert_eq!(request.path, "/api/test");
-        assert_eq!(request.body, Some("{\"key\":\"value\"}"));
-        assert_eq!(request.headers.as_ref().unwrap(), &headers);
-    }
-
-    #[test]
-    fn utf16_conversion() {
-        let input = "Convert this!";
-        let utf16 = utf8_to_utf16(input);
-        assert_eq!(utf16.last(), Some(&0), "Null termination is not valid");
-
-        let without_null = &utf16[..utf16.len() - 1];
-        let decoded = String::from_utf16(without_null).expect("Failed to decode UTF-16");
-        assert_eq!(decoded, input, "UTF-16 conversion mismatch");
-    }
-
-    #[test]
-    fn send_actual_request() {
-        let mut client = match Client::new("Agent", None) {
-            Ok(client) => client,
-            Err(e) => panic!("Create client error: {}", e),
-        };
-
-        let headers = vec!["Hello: asd"];
-        let request = Request::new("httpbin.org/get", "GET", "/", "*/*", Some(headers), None);
-
-        if let Err(e) = client.send_request(request) {
-            panic!("Send request error: {}", e)
-        }
-    }
 }

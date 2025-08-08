@@ -77,20 +77,17 @@ impl Drop for WinHttpConnection {
 pub struct WinHttpRequest(HINTERNET);
 
 impl WinHttpRequest {
-    pub fn new(
-        connection: &WinHttpConnection,
-        method: PCWSTR,
-        path: PCWSTR,
-        accept_types: *const PCWSTR,
-    ) -> Result<Self> {
+    pub fn new(connection: &WinHttpConnection, method: PCWSTR, path: PCWSTR) -> Result<Self> {
         unsafe {
+            let null = PCWSTR::null();
+            let null_accept: *const PCWSTR = &null as *const PCWSTR;
             let request = WinHttpOpenRequest(
                 connection.handle,
                 method,
                 path,
                 PCWSTR::null(), // HTTP version (1.1)
                 PCWSTR::null(), // Referer
-                accept_types,
+                null_accept,    // Accept
                 WINHTTP_FLAG_SECURE,
             );
 
@@ -150,6 +147,23 @@ impl Drop for WinHttpRequest {
     }
 }
 
+pub fn concat_pcwstr(headers: Vec<PCWSTR>) -> Vec<u16> {
+    let mut combined: Vec<u16> = Vec::new();
+
+    for pcwstr in headers {
+        // SAFELY read each PCWSTR string into a &U16 slice
+        unsafe {
+            let mut ptr = pcwstr.0;
+            while !ptr.is_null() && *ptr != 0 {
+                combined.push(*ptr);
+                ptr = ptr.add(1);
+            }
+        }
+    }
+
+    combined
+}
+
 #[cfg(test)]
 mod tests {
     use std::io::{self, Write};
@@ -180,8 +194,7 @@ mod tests {
     fn create_request_and_send() {
         let session = WinHttpSession::new(w!("TestAgent")).unwrap();
         let connection = WinHttpConnection::new(&session, w!("www.example.com")).unwrap();
-        let request =
-            WinHttpRequest::new(&connection, w!("GET"), w!("/"), std::ptr::null()).unwrap();
+        let request = WinHttpRequest::new(&connection, w!("GET"), w!("/")).unwrap();
 
         request.send(None, None).unwrap();
         request.receive().unwrap();
@@ -197,35 +210,17 @@ mod tests {
         }
     }
 
-    fn concat_pcwstr(headers: Vec<PCWSTR>) -> Vec<u16> {
-        let mut combined: Vec<u16> = Vec::new();
-
-        for pcwstr in headers {
-            // SAFELY read each PCWSTR string into a &U16 slice
-            unsafe {
-                let mut ptr = pcwstr.0;
-                while !ptr.is_null() && *ptr != 0 {
-                    combined.push(*ptr);
-                    ptr = ptr.add(1);
-                }
-            }
-        }
-
-        combined
-    }
-
     #[test]
     fn send_request_with_headers() {
         let session = WinHttpSession::new(w!("TestAgent")).unwrap();
         let connection = WinHttpConnection::new(&session, w!("www.example.com")).unwrap();
-        let request =
-            WinHttpRequest::new(&connection, w!("GET"), w!("/"), std::ptr::null()).unwrap();
+        let request = WinHttpRequest::new(&connection, w!("GET"), w!("/")).unwrap();
 
         let headers_vec: Vec<PCWSTR> = vec![w!("Header: 1\r\n"), w!("Header: 2\r\n")];
         let headers_u16: Vec<u16> = concat_pcwstr(headers_vec);
         let headers_slice: &[u16] = headers_u16.as_slice();
         unsafe {
-            let a = WinHttpAddRequestHeaders(request.0, headers_slice, WINHTTP_ADDREQ_FLAG_ADD)
+            WinHttpAddRequestHeaders(request.0, headers_slice, WINHTTP_ADDREQ_FLAG_ADD)
                 .expect("Failed to add headers to request");
 
             request.send(None, None).unwrap();
@@ -247,8 +242,7 @@ mod tests {
     fn send_request_with_body() {
         let session = WinHttpSession::new(w!("TestAgent")).unwrap();
         let connection = WinHttpConnection::new(&session, w!("www.example.com")).unwrap();
-        let request =
-            WinHttpRequest::new(&connection, w!("GET"), w!("/"), std::ptr::null()).unwrap();
+        let request = WinHttpRequest::new(&connection, w!("GET"), w!("/")).unwrap();
 
         let body = "asd";
         let body_ptr = body.as_bytes().as_ptr() as *const c_void;
