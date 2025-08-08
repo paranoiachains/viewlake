@@ -1,4 +1,4 @@
-use crate::winhttp::{WinHttpConnection, WinHttpRequest, WinHttpSession, concat_pcwstr};
+use crate::winhttp::{WinHttpConnection, WinHttpRequest, WinHttpSession};
 use std::{io::Write, os::raw::c_void};
 use windows::core::{Error, HSTRING, PCWSTR, w};
 
