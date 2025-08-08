@@ -102,11 +102,11 @@ impl WinHttpRequest {
             None => (None, 0),
         };
 
+        unsafe { WinHttpSendRequest(self.0, None, body_ptr, body_len, body_len, 0)? }
+
         if let Some(headers_ptr) = headers {
             self.add_headers(headers_ptr);
         }
-
-        unsafe { WinHttpSendRequest(self.0, None, body_ptr, body_len, body_len, 0)? }
 
         Ok(())
     }
