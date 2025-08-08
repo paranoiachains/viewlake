@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+widestring = "1.2.0"
 windows = { version = "0.52", features = ["Win32_Networking_WinHttp", "Win32_Foundation"] }
 
 [profile.dev]
