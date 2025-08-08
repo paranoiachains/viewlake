@@ -115,15 +115,16 @@ impl WinHttpRequest {
     fn add_headers(&self, headers: Vec<String>) -> Result<()> {
         let mut combined: Vec<u16> = Vec::new();
 
-        for header in headers.iter() {
+        for (i, header) in headers.iter().enumerate() {
             combined.extend(header.encode_utf16());
-            combined.push(b'\r' as u16);
-            combined.push(b'\n' as u16);
+
+            if i != headers.len() - 1 {
+                combined.push(b'\r' as u16);
+                combined.push(b'\n' as u16);
+            }
         }
 
         combined.push(0);
-
-        println!("headers: {:?}", combined);
 
         unsafe { WinHttpAddRequestHeaders(self.0, &combined, WINHTTP_ADDREQ_FLAG_ADD) }
     }
