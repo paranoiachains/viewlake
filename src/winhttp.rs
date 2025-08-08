@@ -113,8 +113,7 @@ impl WinHttpRequest {
 
     fn add_headers(&self, headers: Vec<PCWSTR>) -> Result<()> {
         let headers_u16: Vec<u16> = concat_pcwstr(headers);
-        let headers_slice: &[u16] = headers_u16.as_slice();
-        unsafe { WinHttpAddRequestHeaders(self.0, headers_slice, WINHTTP_ADDREQ_FLAG_ADD) }
+        unsafe { WinHttpAddRequestHeaders(self.0, &headers_u16, WINHTTP_ADDREQ_FLAG_ADD) }
     }
 
     pub fn receive(&self) -> Result<()> {
@@ -149,7 +148,16 @@ pub fn concat_pcwstr(headers: Vec<PCWSTR>) -> Vec<u16> {
                 ptr = ptr.add(1);
             }
         }
+        // Ensure each header ends with \r\n
+        if !combined.ends_with(&[b'\r' as u16, b'\n' as u16]) {
+            combined.push(b'\r' as u16);
+            combined.push(b'\n' as u16);
+        }
     }
+
+    // Add null terminator for PCWSTR compatibility
+    combined.push(0);
+
     combined
 }
 
