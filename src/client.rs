@@ -32,10 +32,6 @@ impl Client {
         };
 
         let win_request = WinHttpRequest::new(&connection, request.method, request.path)?;
-        let headers = request.headers.map(|headers_pcwstr| {
-            let headers_u16 = concat_pcwstr(headers_pcwstr);
-            headers_u16
-        });
 
         let body = request.body.map(|body_str| {
             let body_ptr = body_str.as_bytes().as_ptr() as *const c_void;
@@ -43,7 +39,7 @@ impl Client {
             (body_ptr, body_len)
         });
 
-        win_request.send(headers.as_ref().map(|t| t.as_slice()), body)?;
+        win_request.send(request.headers, body)?;
         Ok(RequestHandle(win_request))
     }
 

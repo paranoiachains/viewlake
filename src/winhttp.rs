@@ -94,23 +94,27 @@ impl WinHttpRequest {
 
     pub fn send(
         &self,
-        headers: Option<&[u16]>,
+        headers: Option<Vec<PCWSTR>>,
         body: Option<(*const c_void, u32)>, // pointer + length of body
     ) -> Result<()> {
         let (body_ptr, body_len) = match body {
             Some((ptr, len)) => (Some(ptr), len),
             None => (None, 0),
         };
-        unsafe {
-            if let Some(headers_ptr) = headers {
-                WinHttpAddRequestHeaders(self.0, headers_ptr, WINHTTP_ADDREQ_FLAG_ADD)
-                    .expect("Failed to add headers to request");
-            }
 
-            WinHttpSendRequest(self.0, None, body_ptr, body_len, body_len, 0)?;
-
-            Ok(())
+        if let Some(headers_ptr) = headers {
+            self.add_headers(headers_ptr);
         }
+
+        unsafe { WinHttpSendRequest(self.0, None, body_ptr, body_len, body_len, 0)? }
+
+        Ok(())
+    }
+
+    fn add_headers(&self, headers: Vec<PCWSTR>) -> Result<()> {
+        let headers_u16: Vec<u16> = concat_pcwstr(headers);
+        let headers_slice: &[u16] = headers_u16.as_slice();
+        unsafe { WinHttpAddRequestHeaders(self.0, headers_slice, WINHTTP_ADDREQ_FLAG_ADD) }
     }
 
     pub fn receive(&self) -> Result<()> {
