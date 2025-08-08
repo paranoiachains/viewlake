@@ -17,8 +17,8 @@ pub struct WinHttpSession(HINTERNET);
 fn to_pcwstr(s: &str) -> PCWSTR {
     let mut s_utf16: Vec<u16> = s.encode_utf16().collect();
     s_utf16.push(0);
-
-    PCWSTR::from_raw(s_utf16.as_ptr())
+    println!("MY STRING: {:?}", s_utf16);
+    PCWSTR::from_raw(s_utf17.as_ptr())
 }
 
 impl WinHttpSession {
