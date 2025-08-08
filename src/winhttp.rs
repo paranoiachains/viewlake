@@ -102,28 +102,19 @@ impl WinHttpRequest {
             None => (None, 0),
         };
 
-        let mut headers_wide: Option<Vec<u16>> = None;
+        if let Some(headers_ptr) = headers {
+            self.add_headers(headers_ptr);
+        }
 
-        let headers_slice: Option<&[u16]> = if let Some(headers_vec) = headers {
-            let mut combined_string = String::new();
-            for header in headers_vec {
-                let header_str = unsafe { header.to_string().unwrap() };
-                combined_string.push_str(&header_str);
-                if !header_str.ends_with("\r\n") {
-                    combined_string.push_str("\r\n");
-                }
-            }
-
-            let wide = widestring::U16String::from_str(&combined_string).into_vec();
-            headers_wide = Some(wide);
-            headers_wide.as_deref()
-        } else {
-            None
-        };
-
-        unsafe { WinHttpSendRequest(self.0, headers_slice, body_ptr, body_len, body_len, 0)? }
+        unsafe { WinHttpSendRequest(self.0, None, body_ptr, body_len, body_len, 0)? }
 
         Ok(())
+    }
+
+    fn add_headers(&self, headers: Vec<PCWSTR>) -> Result<()> {
+        let headers_u16: Vec<u16> = concat_pcwstr(headers);
+        let headers_slice: &[u16] = headers_u16.as_slice();
+        unsafe { WinHttpAddRequestHeaders(self.0, headers_slice, WINHTTP_ADDREQ_FLAG_ADD) }
     }
 
     pub fn receive(&self) -> Result<()> {
