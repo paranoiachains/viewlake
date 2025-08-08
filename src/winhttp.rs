@@ -150,9 +150,6 @@ pub fn concat_pcwstr(headers: Vec<PCWSTR>) -> Vec<u16> {
             }
         }
     }
-
-    combined.push(0);
-
     combined
 }
 
@@ -208,7 +205,7 @@ mod tests {
         let connection = WinHttpConnection::new(&session, w!("www.example.com")).unwrap();
         let request = WinHttpRequest::new(&connection, w!("GET"), w!("/")).unwrap();
 
-        let headers_vec: Vec<PCWSTR> = vec![w!("Header: 1\r\n"), w!("Header: 2\r\n")];
+        let headers_vec: Vec<PCWSTR> = vec![w!("Header: 1\r\n")];
         let headers_u16: Vec<u16> = concat_pcwstr(headers_vec);
         let headers_slice: &[u16] = headers_u16.as_slice();
         unsafe {
