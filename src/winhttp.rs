@@ -16,7 +16,10 @@ type HINTERNET = *mut c_void;
 pub struct WinHttpSession(HINTERNET);
 
 fn to_wide(s: &str) -> Utf16String {
-    Utf16String::from_str(s)
+    let mut u16 = Utf16String::from_str(s);
+    u16.push('\0');
+    println!("U16!!: {}", u16);
+    u16
 }
 
 impl WinHttpSession {
