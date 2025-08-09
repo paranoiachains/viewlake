@@ -32,12 +32,12 @@ impl WinHttpSession {
                 PCWSTR::null(), // WINHTTP_NO_PROXY_BYPASS
                 WINHTTP_FLAG_SECURE_DEFAULTS,
             );
+        }
 
-            if session.is_null() {
-                return Err(Error::from_win32());
-            } else {
-                Ok(Self(session))
-            }
+        if session.is_null() {
+            return Err(Error::from_win32());
+        } else {
+            Ok(Self(session))
         }
     }
 }
