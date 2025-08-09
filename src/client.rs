@@ -39,11 +39,13 @@ impl Client {
         Ok(RequestHandle(win_request))
     }
 
-    pub fn receive_response(&self, handle: &WinHttpRequest) -> Result<Response, Error> {
-        handle.receive()?;
+    pub fn receive_response(&self, handle: &RequestHandle) -> Result<Response, Error> {
+        handle.0.receive()?;
 
         let mut buf = [0u8; 4096];
-        handle.read(buf.as_mut_ptr() as *mut _, buf.len() as u32)?;
+        handle
+            .0
+            .read(buf.as_mut_ptr() as *mut _, buf.len() as u32)?;
 
         match std::str::from_utf8(&buf) {
             Ok(data) => Ok(Response {
@@ -117,7 +119,7 @@ mod tests {
             .send_request(request)
             .expect("Failed to send request");
         let response = client
-            .receive_response(&handle.0)
+            .receive_response(&handle)
             .expect("Failed to receive response");
 
         response.into_stdout();
@@ -133,7 +135,7 @@ mod tests {
             .send_request(request)
             .expect("Failed to send request");
         let _response = client
-            .receive_response(&handle.0)
+            .receive_response(&handle)
             .expect("Failed to receive response");
     }
 
@@ -146,7 +148,7 @@ mod tests {
             .send_request(request_1)
             .expect("Failed to send request");
         let _response_1 = client
-            .receive_response(&handle_1.0)
+            .receive_response(&handle_1)
             .expect("Failed to receive response");
 
         let request_2 = build_request("httpbin.org", 443, "POST", "/anything", None, None);
@@ -154,7 +156,7 @@ mod tests {
             .send_request(request_2)
             .expect("Failed to send request");
         let _response_2 = client
-            .receive_response(&handle_2.0)
+            .receive_response(&handle_2)
             .expect("Failed to receive response");
     }
 
@@ -167,7 +169,7 @@ mod tests {
             .send_request(request_1)
             .expect("Failed to send request");
         let _response_1 = client
-            .receive_response(&handle_1.0)
+            .receive_response(&handle_1)
             .expect("Failed to receive response");
 
         let request_2 = build_request("example.com", 443, "GET", "/", None, None);
@@ -175,7 +177,7 @@ mod tests {
             .send_request(request_2)
             .expect("Failed to send request");
         let _response_2 = client
-            .receive_response(&handle_2.0)
+            .receive_response(&handle_2)
             .expect("Failed to receive response");
     }
 }
