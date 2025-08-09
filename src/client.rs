@@ -21,12 +21,14 @@ impl Client {
     }
 
     pub fn send_request(&mut self, request: Request) -> Result<RequestHandle, Error> {
-        let connection = match &self.connection {
-            Some(conn) if conn.hostname == request.hostname => conn,
-            _ => &WinHttpConnection::new(&self.session, request.hostname.as_str())
-                .expect("Connection creation failed."),
-        };
-
+        if self
+            .connection
+            .as_ref()
+            .map_or(true, |c| c.hostname != request.hostname)
+        {
+            self.connection = Some(WinHttpConnection::new(&self.session, &request.hostname)?);
+        }
+        let connection = self.connection.as_ref().unwrap();
         let win_request =
             WinHttpRequest::new(&connection, request.method.as_str(), request.path.as_str())?;
 

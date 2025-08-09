@@ -1,4 +1,5 @@
 use std::os::raw::c_void;
+use widestring::Utf16String;
 use windows::Win32::Networking::WinHttp::*;
 use windows::core::*;
 
@@ -14,18 +15,16 @@ type HINTERNET = *mut c_void;
 
 pub struct WinHttpSession(HINTERNET);
 
-fn to_pcwstr(s: &str) -> PCWSTR {
-    let mut s_utf16: Vec<u16> = s.encode_utf16().collect();
-    s_utf16.push(0);
-    println!("MY STRING: {:?}", s_utf16);
-    PCWSTR::from_raw(s_utf16.as_ptr())
+fn to_wide(s: &str) -> Utf16String {
+    Utf16String::from_str(s)
 }
 
 impl WinHttpSession {
     pub fn new(agent: &str) -> Result<Self> {
+        let agent_wide = to_wide(agent);
         unsafe {
             let session = WinHttpOpen(
-                to_pcwstr(agent),
+                PCWSTR(agent_wide.as_ptr()),
                 WINHTTP_ACCESS_TYPE_NO_PROXY,
                 PCWSTR::null(), // WINHTTP_NO_PROXY_NAME
                 PCWSTR::null(), // WINHTTP_NO_PROXY_BYPASS
@@ -54,10 +53,11 @@ pub struct WinHttpConnection {
 
 impl WinHttpConnection {
     pub fn new(session: &WinHttpSession, hostname: &str) -> Result<Self> {
+        let hostname_wide = to_wide(hostname);
         unsafe {
             let handle = WinHttpConnect(
                 session.0,
-                to_pcwstr(hostname),
+                PCWSTR(hostname_wide.as_ptr()),
                 INTERNET_DEFAULT_HTTPS_PORT,
                 0,
             );
@@ -84,13 +84,16 @@ pub struct WinHttpRequest(HINTERNET);
 
 impl WinHttpRequest {
     pub fn new(connection: &WinHttpConnection, method: &str, path: &str) -> Result<Self> {
+        let method_wide = to_wide(method);
+        let path_wide = to_wide(path);
+
         unsafe {
             let null = PCWSTR::null();
             let null_accept: *const PCWSTR = &null as *const PCWSTR;
             let request = WinHttpOpenRequest(
                 connection.handle,
-                to_pcwstr(method),
-                to_pcwstr(path),
+                PCWSTR(method_wide.as_ptr()),
+                PCWSTR(path_wide.as_ptr()),
                 PCWSTR::null(), // HTTP version (1.1)
                 PCWSTR::null(), // Referer
                 null_accept,    // Accept
