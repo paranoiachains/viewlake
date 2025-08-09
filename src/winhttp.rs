@@ -111,8 +111,8 @@ impl WinHttpRequest {
 
     pub fn send(
         &self,
-        headers: Option<Vec<String>>,
-        body: Option<String>, // pointer + length of body
+        headers: Option<Vec<&str>>,
+        body: Option<&str>, // pointer + length of body
     ) -> Result<()> {
         let body_bytes_opt = body.as_ref().map(|b| b.as_bytes());
 
@@ -131,7 +131,7 @@ impl WinHttpRequest {
         Ok(())
     }
 
-    fn add_headers(&self, headers: Vec<String>) -> Result<()> {
+    fn add_headers(&self, headers: Vec<&str>) -> Result<()> {
         let mut combined: Vec<u16> = Vec::new();
 
         for (i, header) in headers.iter().enumerate() {
@@ -221,7 +221,7 @@ mod tests {
         let connection = WinHttpConnection::new(&session, "www.example.com").unwrap();
         let request = WinHttpRequest::new(&connection, "GET", "/").unwrap();
 
-        let headers_vec: Vec<String> = vec![String::from("Header: 1")];
+        let headers_vec: Vec<&str> = vec!["Header: 1"];
         request.send(Some(headers_vec), None).unwrap();
         request.receive().unwrap();
 
@@ -242,7 +242,7 @@ mod tests {
         let connection = WinHttpConnection::new(&session, "www.example.com").unwrap();
         let request = WinHttpRequest::new(&connection, "GET", "/").unwrap();
 
-        let body = "asd".to_string();
+        let body = "asd";
 
         request.send(None, Some(body)).unwrap();
         request.receive().unwrap();

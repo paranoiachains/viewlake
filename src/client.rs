@@ -29,8 +29,7 @@ impl Client {
             self.connection = Some(WinHttpConnection::new(&self.session, &request.hostname)?);
         }
         let connection = self.connection.as_ref().unwrap();
-        let win_request =
-            WinHttpRequest::new(&connection, request.method.as_str(), request.path.as_str())?;
+        let win_request = WinHttpRequest::new(&connection, request.method, request.path)?;
 
         win_request.send(request.headers, request.body)?;
         Ok(RequestHandle(win_request))
@@ -51,12 +50,12 @@ impl Client {
     }
 }
 
-pub struct Request {
-    pub hostname: String,
-    pub method: String,
-    pub path: String,
-    pub headers: Option<Vec<String>>,
-    pub body: Option<String>,
+pub struct Request<'a> {
+    pub hostname: &'a str,
+    pub method: &'a str,
+    pub path: &'a str,
+    pub headers: Option<Vec<&'a str>>,
+    pub body: Option<&'a str>,
 }
 
 pub struct Response {
@@ -73,19 +72,19 @@ impl Response {
 mod tests {
     use super::*;
 
-    fn build_request(
-        hostname: &str,
-        method: &str,
-        path: &str,
-        headers: Option<Vec<&str>>,
-        body: Option<&str>,
-    ) -> Request {
+    fn build_request<'a>(
+        hostname: &'a str,
+        method: &'a str,
+        path: &'a str,
+        headers: Option<Vec<&'a str>>,
+        body: Option<&'a str>,
+    ) -> Request<'a> {
         Request {
-            hostname: hostname.to_string(),
-            method: method.to_string(),
-            path: path.to_string(),
-            headers: headers.map(|hs| hs.into_iter().map(|h| h.to_string()).collect()),
-            body: body.map(|b| b.to_string()),
+            hostname,
+            method,
+            path,
+            headers,
+            body,
         }
     }
 
