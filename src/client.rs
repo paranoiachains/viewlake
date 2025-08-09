@@ -68,7 +68,7 @@ pub struct Response {
 }
 
 impl Response {
-    pub fn read_response_into_stdout(&self) {
+    pub fn into_stdout(&self) {
         std::io::stdout().write_all(self.data.as_bytes()).unwrap();
     }
 }
@@ -120,7 +120,7 @@ mod tests {
             .receive_response(&handle.0)
             .expect("Failed to receive response");
 
-        response.read_response_into_stdout();
+        response.into_stdout();
     }
 
     #[test]
