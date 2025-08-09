@@ -115,15 +115,13 @@ impl WinHttpRequest {
         headers: Option<Vec<String>>,
         body: Option<String>, // pointer + length of body
     ) -> Result<()> {
-        let body_option = body.map(|body_str| {
-            let body_ptr = body_str.as_bytes().as_ptr() as *const c_void;
-            let body_len = body_str.as_bytes().len() as u32;
-            (body_ptr, body_len)
-        });
+        let body_bytes_opt = body.as_ref().map(|b| b.as_bytes());
 
-        let (body_ptr, body_len) = match body_option {
-            Some((ptr, len)) => (Some(ptr), len),
-            None => (None, 0),
+        // Prepare pointer and length based on the reference, not ownership inside closure
+        let (body_ptr, body_len) = if let Some(bytes) = body_bytes_opt {
+            (Some(bytes.as_ptr() as *const c_void), bytes.len() as u32)
+        } else {
+            (None, 0 as u32)
         };
 
         if let Some(headers_ptr) = headers {
