@@ -18,7 +18,6 @@ pub struct WinHttpSession(HINTERNET);
 fn to_wide(s: &str) -> Utf16String {
     let mut u16 = Utf16String::from_str(s);
     u16.push('\0');
-    println!("U16!!: {}", u16);
     u16
 }
 
@@ -117,7 +116,6 @@ impl WinHttpRequest {
     ) -> Result<()> {
         let body_bytes_opt = body.as_ref().map(|b| b.as_bytes());
 
-        // Prepare pointer and length based on the reference, not ownership inside closure
         let (body_ptr, body_len) = if let Some(bytes) = body_bytes_opt {
             (Some(bytes.as_ptr() as *const c_void), bytes.len() as u32)
         } else {
