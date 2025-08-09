@@ -32,12 +32,12 @@ impl WinHttpSession {
                 PCWSTR::null(), // WINHTTP_NO_PROXY_BYPASS
                 WINHTTP_FLAG_SECURE_DEFAULTS,
             );
+        }
 
-            if session.is_null() {
-                return Err(Error::from_win32());
-            } else {
-                Ok(Self(session))
-            }
+        if session.is_null() {
+            return Err(Error::from_win32());
+        } else {
+            Ok(Self(session))
         }
     }
 }
@@ -54,24 +54,19 @@ pub struct WinHttpConnection {
 }
 
 impl WinHttpConnection {
-    pub fn new(session: &WinHttpSession, hostname: &str) -> Result<Self> {
+    pub fn new(session: &WinHttpSession, hostname: &str, port: u16) -> Result<Self> {
         let hostname_wide = to_wide(hostname);
         unsafe {
-            let handle = WinHttpConnect(
-                session.0,
-                PCWSTR(hostname_wide.as_ptr()),
-                INTERNET_DEFAULT_HTTPS_PORT,
-                0,
-            );
+            let handle = WinHttpConnect(session.0, PCWSTR(hostname_wide.as_ptr()), port, 0);
+        }
 
-            if handle.is_null() {
-                return Err(Error::from_win32());
-            } else {
-                Ok(Self {
-                    handle,
-                    hostname: hostname.to_string(),
-                })
-            }
+        if handle.is_null() {
+            return Err(Error::from_win32());
+        } else {
+            Ok(Self {
+                handle,
+                hostname: hostname.to_string(),
+            })
         }
     }
 }
@@ -88,10 +83,10 @@ impl WinHttpRequest {
     pub fn new(connection: &WinHttpConnection, method: &str, path: &str) -> Result<Self> {
         let method_wide = to_wide(method);
         let path_wide = to_wide(path);
+        let null = PCWSTR::null();
+        let null_accept: *const PCWSTR = &null as *const PCWSTR;
 
         unsafe {
-            let null = PCWSTR::null();
-            let null_accept: *const PCWSTR = &null as *const PCWSTR;
             let request = WinHttpOpenRequest(
                 connection.handle,
                 PCWSTR(method_wide.as_ptr()),
@@ -101,10 +96,10 @@ impl WinHttpRequest {
                 null_accept,    // Accept
                 WINHTTP_FLAG_SECURE,
             );
+        }
 
-            if request.is_null() {
-                return Err(Error::from_win32());
-            }
+        if request.is_null() {
+            return Err(Error::from_win32());
             Ok(Self(request))
         }
     }
@@ -188,8 +183,9 @@ mod tests {
         let session = WinHttpSession::new(agent).expect("Failed to create session");
 
         let hostname = "www.example.com";
+        let port = 443;
         let connection =
-            WinHttpConnection::new(&session, hostname).expect("Failed to create connection");
+            WinHttpConnection::new(&session, hostname, 443).expect("Failed to create connection");
 
         assert!(!connection.handle.is_null(), "Connection handle is null");
         assert_eq!(connection.hostname, "www.example.com");
@@ -198,7 +194,7 @@ mod tests {
     #[test]
     fn create_request_and_send() {
         let session = WinHttpSession::new("TestAgent").unwrap();
-        let connection = WinHttpConnection::new(&session, "www.example.com").unwrap();
+        let connection = WinHttpConnection::new(&session, "www.example.com", 443).unwrap();
         let request = WinHttpRequest::new(&connection, "GET", "/").unwrap();
 
         request.send(None, None).unwrap();
@@ -218,7 +214,7 @@ mod tests {
     #[test]
     fn send_request_with_headers() {
         let session = WinHttpSession::new("TestAgent").unwrap();
-        let connection = WinHttpConnection::new(&session, "www.example.com").unwrap();
+        let connection = WinHttpConnection::new(&session, "www.example.com", 443).unwrap();
         let request = WinHttpRequest::new(&connection, "GET", "/").unwrap();
 
         let headers_vec: Vec<&str> = vec!["Header: 1"];
@@ -239,7 +235,7 @@ mod tests {
     #[test]
     fn send_request_with_body() {
         let session = WinHttpSession::new("TestAgent").unwrap();
-        let connection = WinHttpConnection::new(&session, "www.example.com").unwrap();
+        let connection = WinHttpConnection::new(&session, "www.example.com", 443).unwrap();
         let request = WinHttpRequest::new(&connection, "GET", "/").unwrap();
 
         let body = "asd";

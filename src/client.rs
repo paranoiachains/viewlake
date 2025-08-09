@@ -26,7 +26,11 @@ impl Client {
             .as_ref()
             .map_or(true, |c| c.hostname != request.hostname)
         {
-            self.connection = Some(WinHttpConnection::new(&self.session, &request.hostname)?);
+            self.connection = Some(WinHttpConnection::new(
+                &self.session,
+                &request.hostname,
+                request.port,
+            )?);
         }
         let connection = self.connection.as_ref().unwrap();
         let win_request = WinHttpRequest::new(&connection, request.method, request.path)?;
@@ -52,6 +56,7 @@ impl Client {
 
 pub struct Request<'a> {
     pub hostname: &'a str,
+    pub port: u16,
     pub method: &'a str,
     pub path: &'a str,
     pub headers: Option<Vec<&'a str>>,
@@ -74,6 +79,7 @@ mod tests {
 
     fn build_request<'a>(
         hostname: &'a str,
+        port: u16,
         method: &'a str,
         path: &'a str,
         headers: Option<Vec<&'a str>>,
@@ -81,6 +87,7 @@ mod tests {
     ) -> Request<'a> {
         Request {
             hostname,
+            port,
             method,
             path,
             headers,
@@ -99,6 +106,7 @@ mod tests {
 
         let request = build_request(
             "httpbin.org",
+            443,
             "GET",
             "/anything",
             Some(vec!["Header1: 1", "Header2: 2"]),
@@ -119,7 +127,7 @@ mod tests {
     fn send_request_without_body_and_headers() {
         let mut client = Client::new().expect("Failed to create client");
 
-        let request = build_request("httpbin.org", "GET", "/anything", None, None);
+        let request = build_request("httpbin.org", 443, "GET", "/anything", None, None);
 
         let handle = client
             .send_request(request)
@@ -133,7 +141,7 @@ mod tests {
     fn reuse_connection_for_same_host() {
         let mut client = Client::new().expect("Failed to create client");
 
-        let request_1 = build_request("httpbin.org", "GET", "/anything", None, None);
+        let request_1 = build_request("httpbin.org", 443, "GET", "/anything", None, None);
         let handle_1 = client
             .send_request(request_1)
             .expect("Failed to send request");
@@ -141,7 +149,7 @@ mod tests {
             .receive_response(&handle_1.0)
             .expect("Failed to receive response");
 
-        let request_2 = build_request("httpbin.org", "POST", "/anything", None, None);
+        let request_2 = build_request("httpbin.org", 443, "POST", "/anything", None, None);
         let handle_2 = client
             .send_request(request_2)
             .expect("Failed to send request");
@@ -154,7 +162,7 @@ mod tests {
     fn new_connection_for_different_host() {
         let mut client = Client::new().expect("Failed to create client");
 
-        let request_1 = build_request("httpbin.org", "GET", "/anything", None, None);
+        let request_1 = build_request("httpbin.org", 443, "GET", "/anything", None, None);
         let handle_1 = client
             .send_request(request_1)
             .expect("Failed to send request");
@@ -162,7 +170,7 @@ mod tests {
             .receive_response(&handle_1.0)
             .expect("Failed to receive response");
 
-        let request_2 = build_request("example.com", "GET", "/", None, None);
+        let request_2 = build_request("example.com", 443, "GET", "/", None, None);
         let handle_2 = client
             .send_request(request_2)
             .expect("Failed to send request");
