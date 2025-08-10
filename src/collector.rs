@@ -80,7 +80,7 @@ pub fn get_os() -> Option<OsInfo> {
         let mut os_version: OSVERSIONINFOEXW = std::mem::zeroed();
         let ntstatus = RtlGetVersion(&mut os_version as *mut _ as *mut OSVERSIONINFOW);
         if ntstatus == STATUS_SUCCESS {
-            let product_type = match os_version.wProductType {
+            let product_type = match os_version.wProductType as u32 {
                 VER_NT_WORKSTATION => ProductType::Workstation,
                 VER_NT_SERVER => ProductType::Server,
                 VER_NT_DOMAIN_CONTROLLER => ProductType::DomainController,
