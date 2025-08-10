@@ -1,13 +1,15 @@
-use crate::winhttp::{WinHttpConnection, WinHttpRequest, WinHttpSession};
 use std::io::Write;
 use windows::core::{Error, HSTRING};
+use winhttp::{WinHttpConnection, WinHttpRequest, WinHttpSession};
 
 pub struct Client {
     pub session: WinHttpSession,
     pub connection: Option<WinHttpConnection>, // Store hostname with connection
 }
 
-const DEFAULT_AGENT: &'static str = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
+pub mod winhttp;
+
+const DEFAULT_AGENT: &'static str = "SomeAgent"; // TODO: randomize user-agent
 
 pub struct RequestHandle(WinHttpRequest);
 
@@ -95,6 +97,7 @@ impl Response {
     }
 }
 
+// Warning: These tests send actual requests
 #[cfg(test)]
 mod tests {
     use super::*;
