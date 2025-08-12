@@ -3,8 +3,7 @@ use windows::Win32::Foundation::STATUS_SUCCESS;
 use windows::Win32::System::SystemInformation::*;
 use windows::Win32::System::SystemServices::*;
 use windows::core::Error;
-use windows::core::HRESULT;
-use windows::core::HSTRING;
+use windows::core::PWSTR;
 
 // This logic implies only logging/collecting, not pattern matching
 
@@ -13,13 +12,33 @@ pub struct SystemInfo {
     pub arch: String,
     pub product_type: String,
     pub version: String,
+    pub fqdn: String,
 }
 
 impl SystemInfo {
     pub fn collect() -> Result<Self, Error> {
+        let (product_type, version) = Self::os()?;
+        let fqdn = Self::os()?;
+
+        let arch = match Architecture::get() {
+            Architecture::AMD64 => "AMD64".to_string(),
+            Architecture::ARM64 => "ARM64".to_string(),
+            Architecture::Unknown => "Unknown".to_string(),
+        };
+
+        Ok(SystemInfo {
+            arch,
+            product_type,
+            version,
+            fqdn,
+        })
+    }
+
+    fn os() -> Result<(String, String), Error> {
         unsafe {
             let mut os_version: OSVERSIONINFOEXW = std::mem::zeroed();
             let ntstatus = RtlGetVersion(&mut os_version as *mut _ as *mut OSVERSIONINFOW);
+
             if ntstatus == STATUS_SUCCESS {
                 let product_type = match os_version.wProductType as u32 {
                     VER_NT_WORKSTATION => "Workstation".to_string(),
@@ -30,23 +49,36 @@ impl SystemInfo {
 
                 let version = format!(
                     "{}.{}.{}",
-                    os_version.dwMajorVersion, os_version.dwMinorVersion, os_version.dwBuildNumber,
+                    os_version.dwMajorVersion, os_version.dwMinorVersion, os_version.dwBuildNumber
                 );
 
-                let arch = match Architecture::get() {
-                    Architecture::AMD64 => "AMD64".to_string(),
-                    Architecture::ARM64 => "ARM64".to_string(),
-                    Architecture::Unknown => "Unknown".to_string(),
-                };
-
-                Ok(SystemInfo {
-                    arch,
-                    product_type,
-                    version,
-                })
+                Ok((product_type, version))
             } else {
-                Err(Error::new(HRESULT(1), HSTRING::new()))
+                Err(Error::from_win32())
             }
+        }
+    }
+
+    fn fqdn() -> Result<String, Error> {
+        unsafe {
+            let mut size: u32 = 0;
+            GetComputerNameExW(
+                ComputerNameDnsFullyQualified,
+                PWSTR::null(),
+                &mut size as *mut u32,
+            )?;
+
+            let mut buffer: Vec<u16> = vec![0; size as usize];
+
+            GetComputerNameExW(
+                ComputerNameDnsFullyQualified,
+                PWSTR(buffer.as_mut_ptr()),
+                &mut size as *mut u32,
+            )?;
+
+            buffer.truncate(size as usize);
+
+            Ok(String::from_utf16_lossy(&buffer));
         }
     }
 }
@@ -80,6 +112,7 @@ mod tests {
     #[test]
     fn get_system_info() {
         let os_info = SystemInfo::collect().expect("Failed to get OS info");
+
         println!("Arch: {:?}", os_info.arch);
         println!("OS Version: {}", os_info.version);
         println!("Product Type: {:?}", os_info.product_type);
@@ -104,5 +137,7 @@ mod tests {
             "Unexpected product type: {}",
             os_info.product_type
         );
+
+        assert!(!os_info.fqdn.is_empty(), "FQDN is empty");
     }
 }

@@ -186,7 +186,7 @@ mod tests {
         let hostname = "www.example.com";
         let port = 443;
         let connection =
-            WinHttpConnection::new(&session, hostname, 443).expect("Failed to create connection");
+            WinHttpConnection::new(&session, hostname, port).expect("Failed to create connection");
 
         assert!(!connection.handle.is_null(), "Connection handle is null");
         assert_eq!(connection.hostname, "www.example.com");

@@ -178,11 +178,11 @@ mod tests {
             .expect("Failed to receive response");
 
         let request_2 = Request::new("example.com", 443, "GET", "/", None, None);
-        let handle_2 = client
+        let _handle_2 = client
             .send_request(request_2)
             .expect("Failed to send request");
         let _response_2 = client
-            .receive_response(&handle_2)
+            .receive_response(&_handle_2)
             .expect("Failed to receive response");
     }
 }
