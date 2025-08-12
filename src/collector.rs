@@ -1,104 +1,75 @@
-use core::fmt;
 use windows::Wdk::System::SystemServices::*;
 use windows::Win32::Foundation::STATUS_SUCCESS;
 use windows::Win32::System::SystemInformation::*;
 use windows::Win32::System::SystemServices::*;
+use windows::core::Error;
+use windows::core::HRESULT;
+use windows::core::HSTRING;
+
+// This logic implies only logging/collecting, not pattern matching
 
 #[derive(Debug)]
-pub enum Architecture {
+pub struct SystemInfo {
+    pub arch: String,
+    pub product_type: String,
+    pub version: String,
+}
+
+impl SystemInfo {
+    pub fn collect() -> Result<Self, Error> {
+        unsafe {
+            let mut os_version: OSVERSIONINFOEXW = std::mem::zeroed();
+            let ntstatus = RtlGetVersion(&mut os_version as *mut _ as *mut OSVERSIONINFOW);
+            if ntstatus == STATUS_SUCCESS {
+                let product_type = match os_version.wProductType as u32 {
+                    VER_NT_WORKSTATION => "Workstation".to_string(),
+                    VER_NT_SERVER => "Server".to_string(),
+                    VER_NT_DOMAIN_CONTROLLER => "Domain Controller".to_string(),
+                    _ => "Unknown".to_string(),
+                };
+
+                let version = format!(
+                    "{}.{}.{}",
+                    os_version.dwMajorVersion, os_version.dwMinorVersion, os_version.dwBuildNumber,
+                );
+
+                let arch = match Architecture::get() {
+                    Architecture::AMD64 => "AMD64".to_string(),
+                    Architecture::ARM64 => "ARM64".to_string(),
+                    Architecture::Unknown => "Unknown".to_string(),
+                };
+
+                Ok(SystemInfo {
+                    arch,
+                    product_type,
+                    version,
+                })
+            } else {
+                Err(Error::new(HRESULT(1), HSTRING::new()))
+            }
+        }
+    }
+}
+
+#[derive(Debug)]
+enum Architecture {
     AMD64,
     ARM64,
     Unknown,
 }
 
-pub fn get_arch() -> Architecture {
-    unsafe {
-        let mut sysinfo: SYSTEM_INFO = std::mem::zeroed();
-        GetNativeSystemInfo(&mut sysinfo as *mut _);
+impl Architecture {
+    fn get() -> Self {
+        unsafe {
+            let mut sysinfo: SYSTEM_INFO = std::mem::zeroed();
+            GetNativeSystemInfo(&mut sysinfo as *mut _);
 
-        let arch = sysinfo.Anonymous.Anonymous.wProcessorArchitecture;
-        match arch.0 {
-            9 => Architecture::AMD64,
-            12 => Architecture::ARM64,
-            _ => Architecture::Unknown,
-        }
-    }
-}
-
-#[derive(Debug)]
-pub struct OsInfo {
-    product_type: ProductType,
-    version: WindowsVersion,
-}
-
-impl OsInfo {
-    pub fn new(product_type: ProductType, version: WindowsVersion) -> Self {
-        OsInfo {
-            product_type,
-            version,
-        }
-    }
-}
-
-#[derive(Debug)]
-pub enum ProductType {
-    Workstation,
-    Server,
-    DomainController,
-    Unknown,
-}
-
-#[derive(Debug)]
-pub struct WindowsVersion {
-    pub major: u32,
-    pub minor: u32,
-    pub build: u32,
-}
-
-impl WindowsVersion {
-    pub fn new(major: u32, minor: u32, build: u32) -> Self {
-        Self {
-            major,
-            minor,
-            build,
-        }
-    }
-
-    pub fn to_string(&self) -> String {
-        format!("{}.{}.{}", self.major, self.minor, self.build)
-    }
-}
-
-impl fmt::Display for WindowsVersion {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}.{}.{}", self.major, self.minor, self.build)
-    }
-}
-
-pub fn get_os() -> Option<OsInfo> {
-    unsafe {
-        let mut os_version: OSVERSIONINFOEXW = std::mem::zeroed();
-        let ntstatus = RtlGetVersion(&mut os_version as *mut _ as *mut OSVERSIONINFOW);
-        if ntstatus == STATUS_SUCCESS {
-            let product_type = match os_version.wProductType as u32 {
-                VER_NT_WORKSTATION => ProductType::Workstation,
-                VER_NT_SERVER => ProductType::Server,
-                VER_NT_DOMAIN_CONTROLLER => ProductType::DomainController,
-                _ => ProductType::Unknown,
-            };
-
-            let version = WindowsVersion::new(
-                os_version.dwMajorVersion,
-                os_version.dwMinorVersion,
-                os_version.dwBuildNumber,
-            );
-
-            Some(OsInfo {
-                product_type,
-                version,
-            })
-        } else {
-            None
+            let arch = sysinfo.Anonymous.Anonymous.wProcessorArchitecture;
+            match arch.0 {
+                9 => Architecture::AMD64,
+                12 => Architecture::ARM64,
+                _ => Architecture::Unknown,
+            }
         }
     }
 }
@@ -108,13 +79,30 @@ mod tests {
     use super::*;
     #[test]
     fn get_system_info() {
-        let arch = get_arch();
-        println!("Arch: {:?}", arch);
+        let os_info = SystemInfo::collect().expect("Failed to get OS info");
+        println!("Arch: {:?}", os_info.arch);
+        println!("OS Version: {}", os_info.version);
+        println!("Product Type: {:?}", os_info.product_type);
 
-        let os = get_os().expect("Failed to get OS info");
-        println!("OS Version: {}", os.version);
-        println!("Product Type: {:?}", os.product_type);
+        assert!(
+            os_info.arch == "AMD64" || os_info.arch == "ARM64" || os_info.arch == "Unknown",
+            "Unexpected architecture: {}",
+            os_info.arch
+        );
 
-        assert!(os.version.major >= 6);
+        assert!(
+            os_info.version.chars().next().unwrap().is_ascii_digit(),
+            "OS version is not a valid number: {}",
+            os_info.version
+        );
+
+        assert!(
+            os_info.product_type == "Workstation"
+                || os_info.product_type == "Server"
+                || os_info.product_type == "Domain Controller"
+                || os_info.product_type == "Unknown",
+            "Unexpected product type: {}",
+            os_info.product_type
+        );
     }
 }
