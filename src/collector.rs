@@ -18,7 +18,7 @@ pub struct SystemInfo {
 impl SystemInfo {
     pub fn collect() -> Result<Self, Error> {
         let (product_type, version) = Self::os()?;
-        let fqdn = Self::os()?;
+        let fqdn = Self::fqdn()?;
 
         let arch = match Architecture::get() {
             Architecture::AMD64 => "AMD64".to_string(),
@@ -78,7 +78,7 @@ impl SystemInfo {
 
             buffer.truncate(size as usize);
 
-            Ok(String::from_utf16_lossy(&buffer));
+            Ok(String::from_utf16_lossy(&buffer))
         }
     }
 }
