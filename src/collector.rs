@@ -100,16 +100,16 @@ pub struct NetworkInfo {
 pub struct Adapter {
     friendly_name: String,
     description: String,
-    ipv4_addresses: Vec<String>,
-    gateways: Vec<String>,
+    ipv4_addresses: Option<Vec<String>>,
+    gateways: Option<String>,
 }
 
 impl Adapter {
     pub fn new(
         friendly_name: String,
         description: String,
-        ipv4_addresses: Vec<String>,
-        gateways: Vec<String>,
+        ipv4_addresses: Option<Vec<String>>,
+        gateways: Option<String>,
     ) -> Self {
         Adapter {
             friendly_name,
@@ -233,57 +233,71 @@ impl NetworkInfo {
                     String::new()
                 };
 
-                let mut ipv4_addresses: Vec<String> = Vec::new();
-                let mut current_unicast = adapter.FirstUnicastAddress;
-                while !current_unicast.is_null() {
-                    let unicast = &*current_unicast;
-                    let sockaddr = unicast.Address.lpSockaddr;
+                let ipv4_addrs = Self::get_ipv4_addresses(adapter);
+                let gateway = Self::get_default_gateway(adapter);
 
-                    if !sockaddr.is_null() {
-                        let family = (*sockaddr).sa_family;
-                        if family == AF_INET {
-                            let ipv4 = *(sockaddr as *const SOCKADDR_IN);
-                            let octets = ipv4.sin_addr.S_un.S_un_b;
-                            ipv4_addresses.push(format!(
-                                "{}.{}.{}.{}",
-                                octets.s_b1, octets.s_b2, octets.s_b3, octets.s_b4
-                            ))
-                        }
-                    }
-
-                    current_unicast = unicast.Next;
-                }
-
-                let mut gateways: Vec<String> = Vec::new();
-                let mut current_gw = adapter.FirstGatewayAddress;
-
-                while !current_gw.is_null() {
-                    let gw = &*current_gw;
-                    let sockaddr = gw.Address.lpSockaddr;
-
-                    if !sockaddr.is_null() {
-                        let family = (*sockaddr).sa_family;
-                        if family == AF_INET {
-                            let ipv4 = *(sockaddr as *const SOCKADDR_IN);
-                            let octets = ipv4.sin_addr.S_un.S_un_b;
-                            gateways.push(format!(
-                                "{}.{}.{}.{}",
-                                octets.s_b1, octets.s_b2, octets.s_b3, octets.s_b4
-                            ));
-                        }
-                    }
-
-                    current_gw = gw.Next;
-                }
-
-                let adapter_instance = Adapter::new(name, description, ipv4_addresses, gateways);
-                adapter_vec.push(adapter_instance);
-
-                current = adapter.Next;
+                let instance = Adapter::new(name, description, ipv4_addrs, gateway);
+                adapter_vec.push(instance);
             }
-
             Ok(adapter_vec)
         }
+    }
+
+    fn get_ipv4_addresses(adapter: &IP_ADAPTER_ADDRESSES_LH) -> Option<Vec<String>> {
+        unsafe {
+            let mut ipv4_addrs = Vec::new();
+            let mut current_unicast = adapter.FirstUnicastAddress;
+
+            while !current_unicast.is_null() {
+                let unicast = &*current_unicast;
+                let sockaddr = unicast.Address.lpSockaddr;
+
+                if !sockaddr.is_null() {
+                    let family = (*sockaddr).sa_family;
+                    if family == AF_INET {
+                        let ipv4 = *(sockaddr as *const SOCKADDR_IN);
+                        let octets = ipv4.sin_addr.S_un.S_un_b;
+                        ipv4_addrs.push(format!(
+                            "{}.{}.{}.{}",
+                            octets.s_b1, octets.s_b2, octets.s_b3, octets.s_b4
+                        ));
+                    }
+                }
+
+                current_unicast = unicast.Next;
+            }
+            if !ipv4_addrs.is_empty() {
+                Some(ipv4_addrs)
+            } else {
+                None
+            }
+        }
+    }
+
+    fn get_default_gateway(adapter: &IP_ADAPTER_ADDRESSES_LH) -> Option<String> {
+        unsafe {
+            let mut current_gw = adapter.FirstGatewayAddress;
+
+            while !current_gw.is_null() {
+                let gw = &*current_gw;
+                let sockaddr = gw.Address.lpSockaddr;
+
+                if !sockaddr.is_null() {
+                    let family = (*sockaddr).sa_family;
+                    if family == AF_INET {
+                        let ipv4 = *(sockaddr as *const SOCKADDR_IN);
+                        let octets = ipv4.sin_addr.S_un.S_un_b;
+                        return Some(format!(
+                            "{}.{}.{}.{}",
+                            octets.s_b1, octets.s_b2, octets.s_b3, octets.s_b4
+                        ));
+                    }
+                }
+
+                current_gw = gw.Next;
+            }
+        }
+        None
     }
 }
 
