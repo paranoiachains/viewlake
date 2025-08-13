@@ -109,15 +109,9 @@ impl NetworkInfo {
     fn fqdn() -> Result<String, Error> {
         unsafe {
             let mut size: u32 = 512;
-            GetComputerNameExW(
-                ComputerNameDnsFullyQualified,
-                PWSTR::null(),
-                size as *mut u32,
-            )?;
+            let mut buffer: Vec<u16> = vec![0; size as usize];
 
             println!("Buffer size: {}", size);
-
-            let mut buffer: Vec<u16> = vec![0; size as usize];
 
             GetComputerNameExW(
                 ComputerNameDnsFullyQualified,
