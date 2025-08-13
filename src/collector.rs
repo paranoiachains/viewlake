@@ -112,7 +112,7 @@ impl NetworkInfo {
             GetComputerNameExW(
                 ComputerNameDnsFullyQualified,
                 PWSTR::null(),
-                &mut size as *mut u32,
+                size as *mut u32,
             )?;
 
             println!("Buffer size: {}", size);
