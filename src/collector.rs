@@ -115,6 +115,8 @@ impl NetworkInfo {
                 &mut size as *mut u32,
             )?;
 
+            println!("Buffer size: {}", size);
+
             let mut buffer: Vec<u16> = vec![0; size as usize];
 
             GetComputerNameExW(
