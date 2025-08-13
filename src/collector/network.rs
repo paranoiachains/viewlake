@@ -51,7 +51,7 @@ impl NetworkInfo {
     }
     fn hostname() -> Result<String, Error> {
         unsafe {
-            let mut size: u32 = 512;
+            let mut size: u32 = 15000;
             let mut buffer: Vec<u16> = vec![0; size as usize];
 
             GetComputerNameExW(
@@ -221,5 +221,18 @@ impl NetworkInfo {
             }
         }
         None
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn get_network_info() {
+        let nwinfo = network::NetworkInfo::collect().expect("Failed to collect network info");
+        println!("hostname: {}", nwinfo.hostname);
+        println!("domain_or_workgroup: {}", nwinfo.domain_or_workgroup);
+        println!("status: {}", nwinfo.status);
+        println!("adapters: {:?}", nwinfo.adapters_info);
     }
 }
