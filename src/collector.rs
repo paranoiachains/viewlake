@@ -7,7 +7,7 @@ use windows::Win32::NetworkManagement::IpHelper::GAA_FLAG_INCLUDE_PREFIX;
 use windows::Win32::NetworkManagement::IpHelper::GetAdaptersAddresses;
 use windows::Win32::NetworkManagement::IpHelper::IP_ADAPTER_ADDRESSES_LH;
 use windows::Win32::NetworkManagement::NetManagement::*;
-use windows::Win32::Networking::WinSock::AF_UNSPEC;
+use windows::Win32::Networking::WinSock::*;
 use windows::Win32::System::SystemInformation::*;
 use windows::Win32::System::SystemServices::*;
 use windows::core::Error;
@@ -93,7 +93,31 @@ pub struct NetworkInfo {
     hostname: String,
     domain_or_workgroup: String,
     status: String,
-    network: Vec<String>,
+    adapters_info: Vec<Adapter>,
+}
+
+#[derive(Debug)]
+pub struct Adapter {
+    friendly_name: String,
+    description: String,
+    ipv4_addresses: Vec<String>,
+    gateways: Vec<String>,
+}
+
+impl Adapter {
+    pub fn new(
+        friendly_name: String,
+        description: String,
+        ipv4_addresses: Vec<String>,
+        gateways: Vec<String>,
+    ) -> Self {
+        Adapter {
+            friendly_name,
+            description,
+            ipv4_addresses,
+            gateways,
+        }
+    }
 }
 
 impl NetworkInfo {
@@ -103,7 +127,7 @@ impl NetworkInfo {
             hostname: Self::hostname()?,
             domain_or_workgroup,
             status,
-            network: Self::network()?,
+            adapters_info: Self::adapters_info()?,
         })
     }
     fn hostname() -> Result<String, Error> {
@@ -151,8 +175,8 @@ impl NetworkInfo {
 
             let status = match status_result {
                 NetSetupUnjoined => "Unjoined".to_string(),
-                NetSetupWorkgroupName => "Workgroup".to_string(),
-                NetSetupDomainName => "Domain".to_string(),
+                NetSetupWorkgroupName => "Joined to Workgroup".to_string(),
+                NetSetupDomainName => "Joined to Domain".to_string(),
                 _ => "Unknown".to_string(),
             };
 
@@ -160,7 +184,7 @@ impl NetworkInfo {
         }
     }
 
-    fn network() -> Result<Vec<String>, Error> {
+    fn adapters_info() -> Result<Vec<Adapter>, Error> {
         unsafe {
             let mut size = 0u32;
 
@@ -188,7 +212,7 @@ impl NetworkInfo {
             }
 
             let mut current = adapter_addresess;
-            let mut adapter_vec: Vec<String> = Vec::new();
+            let mut adapter_vec: Vec<Adapter> = Vec::new();
             while !current.is_null() {
                 let adapter = &*current;
                 let name = if !adapter.FriendlyName.is_null() {
@@ -200,7 +224,60 @@ impl NetworkInfo {
                     String::new()
                 };
 
-                adapter_vec.push(name);
+                let description = if !adapter.Description.is_null() {
+                    adapter
+                        .Description
+                        .to_string()
+                        .expect("Error while converting desc to string")
+                } else {
+                    String::new()
+                };
+
+                let mut ipv4_addresses: Vec<String> = Vec::new();
+                let mut current_unicast = adapter.FirstUnicastAddress;
+                while !current_unicast.is_null() {
+                    let unicast = &*current_unicast;
+                    let sockaddr = unicast.Address.lpSockaddr;
+
+                    if !sockaddr.is_null() {
+                        let family = (*sockaddr).sa_family;
+                        if family == AF_INET {
+                            let ipv4 = *(sockaddr as *const SOCKADDR_IN);
+                            let octets = ipv4.sin_addr.S_un.S_un_b;
+                            ipv4_addresses.push(format!(
+                                "{}.{}.{}.{}",
+                                octets.s_b1, octets.s_b2, octets.s_b3, octets.s_b4
+                            ))
+                        }
+                    }
+
+                    current_unicast = unicast.Next;
+                }
+
+                let mut gateways: Vec<String> = Vec::new();
+                let mut current_gw = adapter.FirstGatewayAddress;
+
+                while !current_gw.is_null() {
+                    let gw = &*current_gw;
+                    let sockaddr = gw.Address.lpSockaddr;
+
+                    if !sockaddr.is_null() {
+                        let family = (*sockaddr).sa_family;
+                        if family == AF_INET {
+                            let ipv4 = *(sockaddr as *const SOCKADDR_IN);
+                            let octets = ipv4.sin_addr.S_un.S_un_b;
+                            gateways.push(format!(
+                                "{}.{}.{}.{}",
+                                octets.s_b1, octets.s_b2, octets.s_b3, octets.s_b4
+                            ));
+                        }
+                    }
+
+                    current_gw = gw.Next;
+                }
+
+                let adapter_instance = Adapter::new(name, description, ipv4_addresses, gateways);
+                adapter_vec.push(adapter_instance);
 
                 current = adapter.Next;
             }
@@ -249,6 +326,6 @@ mod tests {
         println!("hostname: {}", nwinfo.hostname);
         println!("domain_or_workgroup: {}", nwinfo.domain_or_workgroup);
         println!("status: {}", nwinfo.status);
-        println!("network: {:?}", nwinfo.network);
+        println!("adapters: {:?}", nwinfo.adapters_info);
     }
 }
