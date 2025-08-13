@@ -248,5 +248,7 @@ mod tests {
         let nwinfo = NetworkInfo::collect().expect("Failed to collect network info");
         println!("hostname: {}", nwinfo.hostname);
         println!("domain_or_workgroup: {}", nwinfo.domain_or_workgroup);
+        println!("status: {}", nwinfo.status);
+        println!("network: {:?}", nwinfo.network);
     }
 }
