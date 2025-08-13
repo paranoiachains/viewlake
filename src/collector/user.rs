@@ -1,5 +1,6 @@
 use windows::Win32::Foundation::*;
-use windows::Win32::Security::{GetTokenInformation, TOKEN_QUERY, TokenUser};
+use windows::Win32::Security::Authorization::ConvertSidToStringSidW;
+use windows::Win32::Security::{GetTokenInformation, TOKEN_QUERY, TOKEN_USER, TokenUser};
 use windows::Win32::System::Threading::{GetCurrentProcess, OpenProcessToken};
 use windows::{Win32::System::WindowsProgramming::GetUserNameW, core::PWSTR};
 
@@ -22,8 +23,8 @@ impl UserInfo {
         #[allow(unused_mut)]
         let mut size = buffer.len() as u32;
         unsafe {
-            GetUserNameW(PWSTR::from_raw(buffer.as_mut_ptr()), size as *mut u32)?;
-            Ok(String::from_utf16_lossy(&buffer[..(size - 1) as usize]))
+            GetUserNameW(PWSTR::from_raw(buffer.as_mut_ptr()), &mut size)?;
+            Ok(String::from_utf16_lossy(&buffer[..size as usize]))
         }
     }
 
@@ -46,7 +47,13 @@ impl UserInfo {
                 return_length,
                 &mut return_length,
             )?;
-            Ok(String::from_utf8(buffer).expect("Couldn't convert username to string"))
+
+            let token_user: *const TOKEN_USER = buffer.as_ptr() as *const TOKEN_USER;
+            let mut string_sid: PWSTR = PWSTR::null();
+            ConvertSidToStringSidW((*token_user).User.Sid, &mut string_sid)?;
+            let sid_str = string_sid.to_string().unwrap();
+
+            Ok(sid_str)
         }
     }
 }
