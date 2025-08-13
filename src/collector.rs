@@ -90,18 +90,18 @@ impl Architecture {
 }
 
 pub struct NetworkInfo {
-    hostname: String,
-    domain_or_workgroup: String,
-    status: String,
-    adapters_info: Vec<Adapter>,
+    pub hostname: String,
+    pub domain_or_workgroup: String,
+    pub status: String,
+    pub adapters_info: Vec<Adapter>,
 }
 
 #[derive(Debug)]
 pub struct Adapter {
-    friendly_name: String,
-    description: String,
-    ipv4_addresses: Option<Vec<String>>,
-    gateways: Option<String>,
+    pub friendly_name: String,
+    pub description: String,
+    pub ipv4_addresses: Option<Vec<String>>,
+    pub gateways: Option<String>,
 }
 
 impl Adapter {
@@ -237,7 +237,10 @@ impl NetworkInfo {
                 let gateway = Self::get_default_gateway(adapter);
 
                 let instance = Adapter::new(name, description, ipv4_addrs, gateway);
+
                 adapter_vec.push(instance);
+
+                current = adapter.Next;
             }
             Ok(adapter_vec)
         }
