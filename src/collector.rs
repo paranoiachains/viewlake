@@ -90,7 +90,7 @@ impl Architecture {
 }
 
 pub struct NetworkInfo {
-    fqdn: String,
+    hostname: String,
     domain_or_workgroup: String,
     status: String,
     network: Vec<String>,
@@ -100,18 +100,16 @@ impl NetworkInfo {
     pub fn collect() -> Result<NetworkInfo, Error> {
         let (domain_or_workgroup, status) = Self::domain_or_workgroup()?;
         Ok(NetworkInfo {
-            fqdn: Self::fqdn()?,
+            hostname: Self::hostname()?,
             domain_or_workgroup,
             status,
             network: Self::network()?,
         })
     }
-    fn fqdn() -> Result<String, Error> {
+    fn hostname() -> Result<String, Error> {
         unsafe {
             let mut size: u32 = 512;
             let mut buffer: Vec<u16> = vec![0; size as usize];
-
-            println!("Buffer size: {}", size);
 
             GetComputerNameExW(
                 ComputerNameDnsFullyQualified,
@@ -248,6 +246,7 @@ mod tests {
     #[test]
     fn get_network_info() {
         let nwinfo = NetworkInfo::collect().expect("Failed to collect network info");
-        println!("fqdn: {}", nwinfo.fqdn);
+        println!("hostname: {}", nwinfo.hostname);
+        println("domain_or_workgroup: {}", nwinfo.domain_or_workgroup);
     }
 }
