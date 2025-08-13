@@ -235,5 +235,9 @@ mod tests {
             "Unexpected product type: {}",
             os_info.product_type
         );
+
+        println!("Arch: {}", os_info.arch);
+        println!("Version: {}", os_info.version);
+        println!("Product: {}", os_info.product_type);
     }
 }
