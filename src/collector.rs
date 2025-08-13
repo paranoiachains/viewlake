@@ -249,6 +249,7 @@ mod tests {
         );
     }
 
+    #[test]
     fn get_network_info() {
         let nwinfo = NetworkInfo::collect().expect("Failed to collect network info");
         println!("fqdn: {}", nwinfo.fqdn);
