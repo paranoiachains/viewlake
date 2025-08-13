@@ -82,7 +82,7 @@ mod tests {
     use super::*;
     #[test]
     fn get_system_info() {
-        let os_info = system::SystemInfo::collect().expect("Failed to get OS info");
+        let os_info = SystemInfo::collect().expect("Failed to get OS info");
 
         println!("Arch: {}", os_info.arch);
         println!("OS Version: {}", os_info.version);

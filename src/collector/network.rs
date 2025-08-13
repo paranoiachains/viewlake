@@ -229,7 +229,7 @@ mod tests {
     use super::*;
     #[test]
     fn get_network_info() {
-        let nwinfo = network::NetworkInfo::collect().expect("Failed to collect network info");
+        let nwinfo = NetworkInfo::collect().expect("Failed to collect network info");
         println!("hostname: {}", nwinfo.hostname);
         println!("domain_or_workgroup: {}", nwinfo.domain_or_workgroup);
         println!("status: {}", nwinfo.status);

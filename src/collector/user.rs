@@ -58,7 +58,7 @@ mod tests {
     #[test]
     fn get_user_info() {
         let uinfo = UserInfo::collect();
-        println!("username: {}", uinfo.username);
-        println!("token: {}", uinfo.token);
+        println!("username: {:?}", uinfo.username);
+        println!("token: {:?}", uinfo.token);
     }
 }
