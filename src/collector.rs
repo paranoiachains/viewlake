@@ -91,9 +91,21 @@ impl Architecture {
 
 pub struct NetworkInfo {
     fqdn: String,
+    domain_or_workgroup: String,
+    status: String,
+    network: Vec<String>,
 }
 
 impl NetworkInfo {
+    pub fn collect() -> Result<NetworkInfo, Error> {
+        let (domain_or_workgroup, status) = Self::domain_or_workgroup()?;
+        Ok(NetworkInfo {
+            fqdn: Self::fqdn()?,
+            domain_or_workgroup,
+            status,
+            network: Self::network()?,
+        })
+    }
     fn fqdn() -> Result<String, Error> {
         unsafe {
             let mut size: u32 = 0;
@@ -211,9 +223,9 @@ mod tests {
     fn get_system_info() {
         let os_info = SystemInfo::collect().expect("Failed to get OS info");
 
-        println!("Arch: {:?}", os_info.arch);
+        println!("Arch: {}", os_info.arch);
         println!("OS Version: {}", os_info.version);
-        println!("Product Type: {:?}", os_info.product_type);
+        println!("Product Type: {}", os_info.product_type);
 
         assert!(
             os_info.arch == "AMD64" || os_info.arch == "ARM64" || os_info.arch == "Unknown",
@@ -235,9 +247,10 @@ mod tests {
             "Unexpected product type: {}",
             os_info.product_type
         );
+    }
 
-        println!("Arch: {}", os_info.arch);
-        println!("Version: {}", os_info.version);
-        println!("Product: {}", os_info.product_type);
+    fn get_network_info() {
+        let nwinfo = NetworkInfo::collect().expect("Failed to collect network info");
+        println!("fqdn: {}", nwinfo.fqdn);
     }
 }
