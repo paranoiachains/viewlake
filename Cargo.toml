@@ -5,7 +5,8 @@ edition = "2024"
 
 [dependencies]
 widestring = "1.2.0"
-windows = { version = "0.52", features = ["Win32_Networking_WinHttp",
+windows = { version = "0.52", features = [
+    "Win32_Networking_WinHttp",
     "Win32_Foundation",
     "Win32_System_SystemInformation",
     "Wdk_System_SystemServices",
@@ -13,7 +14,9 @@ windows = { version = "0.52", features = ["Win32_Networking_WinHttp",
     "Win32_NetworkManagement_NetManagement",
     "Win32_NetworkManagement_Ndis",
     "Win32_Networking_WinSock",
-    "Win32_NetworkManagement_IpHelper"] }
+    "Win32_NetworkManagement_IpHelper",
+    "Win32_System_WindowsProgramming"
+] }
 
 [profile.release]
 opt-level = "z"
