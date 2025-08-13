@@ -108,7 +108,7 @@ impl NetworkInfo {
     }
     fn fqdn() -> Result<String, Error> {
         unsafe {
-            let mut size: u32 = 0;
+            let mut size: u32 = 512;
             GetComputerNameExW(
                 ComputerNameDnsFullyQualified,
                 PWSTR::null(),
