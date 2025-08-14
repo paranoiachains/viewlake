@@ -127,6 +127,25 @@ impl UserInfo {
                 let enabled =
                     laa.Attributes & SE_PRIVILEGE_ENABLED != TOKEN_PRIVILEGES_ATTRIBUTES(0);
 
+                if !enabled {
+                    let tp = TOKEN_PRIVILEGES {
+                        PrivilegeCount: 1,
+                        Privileges: [LUID_AND_ATTRIBUTES {
+                            Luid: laa.Luid,
+                            Attributes: SE_PRIVILEGE_ENABLED,
+                        }],
+                    };
+
+                    AdjustTokenPrivileges(
+                        token_handle,
+                        false,
+                        Some(&tp as *const TOKEN_PRIVILEGES),
+                        0,
+                        None,
+                        None,
+                    )?;
+                }
+
                 privileges.push(format!(
                     "{}{}",
                     name,
