@@ -115,23 +115,17 @@ impl UserInfo {
             let mut privileges = Vec::new();
 
             for i in 0..privilege_count {
-                let laa = unsafe { *privileges_ptr.add(i) };
+                let laa = *privileges_ptr.add(i);
 
                 let mut name_buf = [0u16; 256];
                 let mut name_len = name_buf.len() as u32;
 
-                unsafe {
-                    LookupPrivilegeNameW(
-                        None,
-                        &laa.Luid,
-                        PWSTR(name_buf.as_mut_ptr()),
-                        &mut name_len,
-                    )?;
-                }
+                LookupPrivilegeNameW(None, &laa.Luid, PWSTR(name_buf.as_mut_ptr()), &mut name_len)?;
 
                 let name = String::from_utf16_lossy(&name_buf[..name_len as usize]);
 
-                let enabled = laa.Attributes & SE_PRIVILEGE_ENABLED.0 != 0;
+                let enabled =
+                    laa.Attributes & SE_PRIVILEGE_ENABLED != TOKEN_PRIVILEGES_ATTRIBUTES(0);
 
                 privileges.push(format!(
                     "{}{}",
