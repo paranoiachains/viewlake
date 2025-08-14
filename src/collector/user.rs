@@ -13,7 +13,7 @@ pub struct UserInfo {
 impl UserInfo {
     pub fn collect() -> Self {
         UserInfo {
-            username: Self::get_username(),
+            username: Self::get_username().ok(),
             token: Self::get_security_token().expect("Couldn't retrieve token."),
         }
     }
