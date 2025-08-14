@@ -1,20 +1,23 @@
 use windows::Win32::Foundation::*;
 use windows::Win32::Security::Authorization::ConvertSidToStringSidW;
-use windows::Win32::Security::{GetTokenInformation, TOKEN_QUERY, TOKEN_USER, TokenUser};
+use windows::Win32::Security::{
+    GetTokenInformation, LookupAccountSidW, SID_AND_ATTRIBUTES, TOKEN_GROUPS, TOKEN_QUERY,
+    TOKEN_USER, TokenGroups, TokenUser,
+};
 use windows::Win32::System::Threading::{GetCurrentProcess, OpenProcessToken};
 use windows::{Win32::System::WindowsProgramming::GetUserNameW, core::PWSTR};
 
 #[derive(Debug)]
 pub struct UserInfo {
     pub username: Option<String>,
-    pub token: String,
+    pub groups: Vec<String>,
 }
 
 impl UserInfo {
     pub fn collect() -> Self {
         UserInfo {
             username: Self::get_username().ok(),
-            token: Self::get_security_token().expect("Couldn't retrieve token."),
+            groups: Self::get_user_groups().expect("Couldn't retrieve groups"),
         }
     }
 
@@ -28,7 +31,7 @@ impl UserInfo {
         }
     }
 
-    fn get_security_token() -> Result<String, windows::core::Error> {
+    fn get_user_groups() -> Result<Vec<String>, windows::core::Error> {
         unsafe {
             let mut token_handle: HANDLE = HANDLE::default();
             let handle = GetCurrentProcess();
@@ -40,18 +43,45 @@ impl UserInfo {
 
             GetTokenInformation(
                 token_handle,
-                TokenUser,
+                TokenGroups,
                 Some(buffer.as_mut_ptr() as *mut _),
                 return_length,
                 &mut return_length,
             )?;
 
-            let token_user: *const TOKEN_USER = buffer.as_ptr() as *const TOKEN_USER;
-            let mut string_sid: PWSTR = PWSTR::null();
-            ConvertSidToStringSidW((*token_user).User.Sid, &mut string_sid)?;
-            let sid_str = string_sid.to_string().unwrap();
+            let token_groups: *const TOKEN_GROUPS = buffer.as_ptr() as *const TOKEN_GROUPS;
+            let group_count = (*token_groups).GroupCount as usize;
 
-            Ok(sid_str)
+            let groups_ptr = &(*token_groups).Groups as *const _ as *const SID_AND_ATTRIBUTES;
+
+            let groups = Vec::new();
+
+            for i in 0..group_count {
+                let sid_and_attr = *groups_ptr.add(i);
+                let sid = sid_and_attr.Sid;
+
+                let mut name = [0u16; 256];
+                let mut cch_name = name.len() as u32;
+                let mut domain = [0u16; 256];
+                let mut cch_domain = domain.len() as u32;
+                let mut pe_use = 0u32;
+
+                LookupAccountSidW(
+                    None,
+                    sid,
+                    PWSTR(name.as_mut_ptr()),
+                    &mut cch_name,
+                    PWSTR(domain.as_mut_ptr()),
+                    &mut cch_domain,
+                    &mut pe_use,
+                )?;
+
+                let group = String::from_utf16_lossy(&name[..cch_name as usize]);
+                let domain = String::from_utf16_lossy(&domain[..cch_domain as usize]);
+                groups.push(format!("{}\\{}", group, domain));
+            }
+
+            Ok(groups)
         }
     }
 }
@@ -64,6 +94,6 @@ mod tests {
     fn get_user_info() {
         let uinfo = UserInfo::collect();
         println!("username: {:?}", uinfo.username);
-        println!("token: {:?}", uinfo.token);
+        println!("token: {:?}", uinfo.groups);
     }
 }
