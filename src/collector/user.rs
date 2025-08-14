@@ -35,9 +35,7 @@ impl UserInfo {
 
             OpenProcessToken(handle, TOKEN_QUERY, &mut token_handle)?;
 
-            let mut return_length: u32 = 0;
-
-            GetTokenInformation(token_handle, TokenUser, None, 0, &mut return_length)?;
+            let mut return_length: u32 = 1024;
             let mut buffer: Vec<u8> = vec![0; return_length as usize];
 
             GetTokenInformation(
