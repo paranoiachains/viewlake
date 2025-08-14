@@ -7,14 +7,14 @@ use windows::{Win32::System::WindowsProgramming::GetUserNameW, core::PWSTR};
 #[derive(Debug)]
 pub struct UserInfo {
     pub username: Option<String>,
-    pub token: Option<String>,
+    pub token: String,
 }
 
 impl UserInfo {
     pub fn collect() -> Self {
         UserInfo {
-            username: Self::get_username().ok(),
-            token: Self::get_security_token().ok(),
+            username: Self::get_username(),
+            token: Self::get_security_token().expect("Couldn't retrieve token."),
         }
     }
 
@@ -24,7 +24,7 @@ impl UserInfo {
         let mut size = buffer.len() as u32;
         unsafe {
             GetUserNameW(PWSTR::from_raw(buffer.as_mut_ptr()), &mut size)?;
-            Ok(String::from_utf16_lossy(&buffer[..size as usize]))
+            Ok(String::from_utf16_lossy(&buffer[..(size - 1) as usize]))
         }
     }
 
