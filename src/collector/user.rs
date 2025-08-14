@@ -1,8 +1,7 @@
 use windows::Win32::Foundation::*;
-use windows::Win32::Security::Authorization::ConvertSidToStringSidW;
 use windows::Win32::Security::{
-    GetTokenInformation, LookupAccountSidW, SID_AND_ATTRIBUTES, TOKEN_GROUPS, TOKEN_QUERY,
-    TOKEN_USER, TokenGroups, TokenUser,
+    GetTokenInformation, LookupAccountSidW, SID_AND_ATTRIBUTES, SID_NAME_USE, TOKEN_GROUPS,
+    TOKEN_QUERY, TokenGroups,
 };
 use windows::Win32::System::Threading::{GetCurrentProcess, OpenProcessToken};
 use windows::{Win32::System::WindowsProgramming::GetUserNameW, core::PWSTR};
@@ -54,7 +53,7 @@ impl UserInfo {
 
             let groups_ptr = &(*token_groups).Groups as *const _ as *const SID_AND_ATTRIBUTES;
 
-            let groups = Vec::new();
+            let mut groups = Vec::new();
 
             for i in 0..group_count {
                 let sid_and_attr = *groups_ptr.add(i);
@@ -64,7 +63,7 @@ impl UserInfo {
                 let mut cch_name = name.len() as u32;
                 let mut domain = [0u16; 256];
                 let mut cch_domain = domain.len() as u32;
-                let mut pe_use = 0u32;
+                let mut pe_use = SID_NAME_USE(0);
 
                 LookupAccountSidW(
                     None,
