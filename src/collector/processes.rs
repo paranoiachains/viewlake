@@ -26,7 +26,12 @@ impl ProcessList {
             if pid == 0 {
                 continue; // for some reason, pid 0 returns an error
             }
+
             let name = Self::process_name_from_pid(pid);
+
+            if name == None {
+                continue; // Skip unnamed/access denied processes
+            }
 
             let process = Process { pid, name };
             processes.push(process);
@@ -55,12 +60,11 @@ impl ProcessList {
 
     fn process_name_from_pid(pid: u32) -> Option<String> {
         unsafe {
-            let handle_result =
-                OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, false, pid);
+            let handle_result = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, false, pid);
 
             let handle = match handle_result {
                 Ok(h) => h,
-                Err(e) => return Some(e.message().to_string_lossy()),
+                Err(e) => return None,
             };
             let mut hmod = [0isize; 1024];
             let mut needed = 0u32;
