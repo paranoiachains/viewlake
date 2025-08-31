@@ -13,9 +13,12 @@ pub struct UserInfo {
 impl UserInfo {
     pub fn collect() -> Self {
         UserInfo {
-            username: Self::get_username().ok(),
-            groups: Self::get_user_groups().ok(),
-            privileges: Self::get_user_privileges().ok(),
+            username: Self::get_username()
+                .unwrap_or_else(|e| format!("Couldn't retrieve username: {e}")),
+            groups: Self::get_user_groups()
+                .unwrap_or_else(|e| format!("Couldn't retrieve groups: {e}")),
+            privileges: Self::get_user_privileges()
+                .unwrap_or_else(|e| format!("Couldn't retrieve user privileges: {e}")),
         }
     }
 
