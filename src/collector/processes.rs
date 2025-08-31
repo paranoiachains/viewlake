@@ -52,8 +52,12 @@ impl ProcessList {
 
     fn process_name_from_pid(pid: u32) -> Option<String> {
         unsafe {
-            let handle: HANDLE =
-                OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, false, pid).unwrap();
+            let handle: HANDLE = OpenProcess(
+                PROCESS_QUERY_INFORMATION | PROCESS_VM_READ,
+                windows::Win32::Foundation::BOOL(1),
+                pid,
+            )
+            .unwrap();
 
             if handle.is_invalid() {
                 return None;
