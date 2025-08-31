@@ -20,6 +20,7 @@ struct Process {
 impl ProcessList {
     fn collect() -> Result<Self, windows::core::Error> {
         let pids = Self::get_pid_list()?;
+        println!("pids: {:?}", pids);
 
         let mut processes: Vec<Process> = Vec::new();
         for pid in pids {
