@@ -23,6 +23,9 @@ impl ProcessList {
 
         let mut processes: Vec<Process> = Vec::new();
         for pid in pids {
+            if pid == 0 {
+                continue; // for some reason, pid 0 returns an error
+            }
             let name = Self::process_name_from_pid(pid);
 
             let process = Process { pid, name };
@@ -53,7 +56,7 @@ impl ProcessList {
     fn process_name_from_pid(pid: u32) -> Option<String> {
         unsafe {
             let handle =
-                OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, false, 4 as u32).unwrap();
+                OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, false, pid).unwrap();
 
             if handle.is_invalid() {
                 return None;
