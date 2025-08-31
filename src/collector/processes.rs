@@ -20,12 +20,9 @@ struct Process {
 impl ProcessList {
     fn collect() -> Result<Self, windows::core::Error> {
         let pids = Self::get_pid_list()?;
-        println!("pids: {:?}", pids);
 
         let mut processes: Vec<Process> = Vec::new();
         for pid in pids {
-            println!("Current process pid: {}", pid);
-
             let name = Self::process_name_from_pid(pid);
 
             let process = Process { pid, name };
@@ -55,12 +52,8 @@ impl ProcessList {
 
     fn process_name_from_pid(pid: u32) -> Option<String> {
         unsafe {
-            let handle = OpenProcess(
-                PROCESS_QUERY_INFORMATION | PROCESS_VM_READ,
-                false,
-                pid as u32,
-            )
-            .unwrap();
+            let handle =
+                OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, false, 4 as u32).unwrap();
 
             if handle.is_invalid() {
                 return None;
