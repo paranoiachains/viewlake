@@ -90,7 +90,7 @@ mod tests {
 
     #[test]
     fn get_processes() {
-        let processes = ProcessList::collect().expect("ProcessList shouldn't panic");
+        let processes = ProcessList::collect();
         println!("{:?}", processes);
 
         assert!(processes.is_ok(), "ProcessList shouldn't be Err");
