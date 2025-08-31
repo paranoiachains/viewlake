@@ -55,12 +55,13 @@ impl ProcessList {
 
     fn process_name_from_pid(pid: u32) -> Option<String> {
         unsafe {
-            let handle = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, false, pid).unwrap();
+            let handle_result =
+                OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, false, pid);
 
-            if handle.is_invalid() {
-                return None;
-            }
-
+            let handle = match handle_result {
+                Ok(h) => h,
+                Err(e) => return Some(e.message().to_string_lossy()),
+            };
             let mut hmod = [0isize; 1024];
             let mut needed = 0u32;
 
