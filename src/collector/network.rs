@@ -9,10 +9,10 @@ use windows::core::PCWSTR;
 use windows::core::PWSTR;
 
 pub struct NetworkInfo {
-    pub hostname: String,
+    pub hostname: Result<String, Error>,
     pub domain_or_workgroup: String,
     pub status: String,
-    pub adapters_info: Vec<Adapter>,
+    pub adapters_info: Result<Vec<Adapter>, Error>,
 }
 
 #[derive(Debug)]
@@ -43,10 +43,10 @@ impl NetworkInfo {
     pub fn collect() -> Result<NetworkInfo, Error> {
         let (domain_or_workgroup, status) = Self::domain_or_workgroup()?;
         Ok(NetworkInfo {
-            hostname: Self::hostname()?,
+            hostname: Self::hostname(),
             domain_or_workgroup,
             status,
-            adapters_info: Self::adapters_info()?,
+            adapters_info: Self::adapters_info(),
         })
     }
     fn hostname() -> Result<String, Error> {
