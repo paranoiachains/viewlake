@@ -6,10 +6,12 @@ use windows::Win32::System::ProcessStatus::{
 };
 use windows::Win32::System::Threading::*;
 
+#[derive(Debug)]
 struct ProcessList {
     processes: Vec<Process>,
 }
 
+#[derive(Debug)]
 struct Process {
     pid: u32,
     name: Option<String>,
@@ -88,7 +90,7 @@ mod tests {
 
     #[test]
     fn get_processes() {
-        let processes = ProcessList::collect();
+        let processes = ProcessList::collect().expect("ProcessList shouldn't panic");
         println!("{:?}", processes);
 
         assert!(processes.is_ok(), "ProcessList shouldn't be Err");
