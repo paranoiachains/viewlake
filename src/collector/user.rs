@@ -148,6 +148,6 @@ mod tests {
         let info = UserInfo::collect();
         println!("{:?}", info);
 
-        assert!(info.username.is_some(), "Username should not be None");
+        assert!(info.username.is_ok(), "Username should not be Err");
     }
 }
