@@ -60,7 +60,8 @@ impl ProcessList {
 
     fn process_name_from_pid(pid: u32) -> Option<String> {
         unsafe {
-            let handle_result = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, false, pid);
+            let handle_result =
+                OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, false, pid);
 
             let handle = match handle_result {
                 Ok(h) => h,
