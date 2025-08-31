@@ -44,9 +44,6 @@ impl ProcessList {
             )?;
         }
 
-        let count = (bytes_returned as usize) / std::mem::size_of::<u32>();
-        buf.truncate(count);
-
         Ok(buf)
     }
 
