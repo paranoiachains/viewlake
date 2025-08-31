@@ -23,6 +23,8 @@ impl ProcessList {
 
         let mut processes: Vec<Process> = Vec::new();
         for pid in pids {
+            println!("Current process pid: {}", pid);
+
             let name = Self::process_name_from_pid(pid);
 
             let process = Process { pid, name };
@@ -43,6 +45,9 @@ impl ProcessList {
                 &mut bytes_returned,
             )?;
         }
+
+        let count = (bytes_returned as usize) / std::mem::size_of::<u32>();
+        buf.truncate(count);
 
         Ok(buf)
     }
