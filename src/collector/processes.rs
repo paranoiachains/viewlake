@@ -29,7 +29,7 @@ impl ProcessList {
 
             let name = Self::process_name_from_pid(pid);
 
-            if name == None {
+            if name.is_none() {
                 continue; // Skip unnamed/access denied processes
             }
 
