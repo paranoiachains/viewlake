@@ -5,20 +5,17 @@ use windows::{Win32::System::WindowsProgramming::GetUserNameW, core::PWSTR};
 
 #[derive(Debug)]
 pub struct UserInfo {
-    pub username: Option<String>,
-    pub groups: Option<Vec<String>>,
-    pub privileges: Option<Vec<String>>,
+    pub username: Result<String, windows::core::Error>,
+    pub groups: Result<Vec<String>, windows::core::Error>,
+    pub privileges: Result<Vec<String>, windows::core::Error>,
 }
 
 impl UserInfo {
     pub fn collect() -> Self {
         UserInfo {
-            username: Self::get_username()
-                .unwrap_or_else(|e| format!("Couldn't retrieve username: {e}")),
-            groups: Self::get_user_groups()
-                .unwrap_or_else(|e| format!("Couldn't retrieve groups: {e}")),
-            privileges: Self::get_user_privileges()
-                .unwrap_or_else(|e| format!("Couldn't retrieve user privileges: {e}")),
+            username: Self::get_username(),
+            groups: Self::get_user_groups(),
+            privileges: Self::get_user_privileges(),
         }
     }
 
