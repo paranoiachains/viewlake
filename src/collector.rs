@@ -31,3 +31,42 @@ impl SystemFingerprint {
         })
     }
 }
+
+impl Display for SystemFingerprint {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "<--Network-->\n
+            {}",
+            self.network
+        )?;
+        write!(
+            f,
+            "<--Processes-->\n
+            {}",
+            self.processes
+        )?;
+        write!(
+            f,
+            "<--System-->\n
+            {}",
+            self.system
+        )?;
+        write!(
+            f,
+            "<--User-->\n
+            {}",
+            self.user
+        )?;
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn collect_system_fingerprint() {
+        let sys_fingerprint = SystemFingerprint::collect()?;
+    }
+}
