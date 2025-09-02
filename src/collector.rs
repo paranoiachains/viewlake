@@ -33,31 +33,16 @@ impl SystemFingerprint {
 }
 
 impl Display for SystemFingerprint {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         write!(
             f,
-            "<--Network-->\n
-            {}",
-            self.network
+            "Network:\n{}\n\
+             Processes:\n{}\n\
+             System:\n{}\n\
+             User:\n{}",
+            self.network, self.processes, self.system, self.user
         )?;
-        write!(
-            f,
-            "<--Processes-->\n
-            {}",
-            self.processes
-        )?;
-        write!(
-            f,
-            "<--System-->\n
-            {}",
-            self.system
-        )?;
-        write!(
-            f,
-            "<--User-->\n
-            {}",
-            self.user
-        )?;
+        Ok(())
     }
 }
 
