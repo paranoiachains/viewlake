@@ -205,11 +205,8 @@ mod tests {
         request
             .read(buf.as_mut_ptr() as *mut _, buf.len() as u32)
             .unwrap();
-        if let Ok(text) = std::str::from_utf8(&buf) {
-            println!("{text}");
-        } else {
-            io::stdout().write_all(&buf).unwrap();
-        }
+
+        assert!(!buf.is_empty());
     }
 
     #[test]
@@ -223,14 +220,7 @@ mod tests {
         request.receive().unwrap();
 
         let mut buf = [0u8; 4096];
-        request
-            .read(buf.as_mut_ptr() as *mut _, buf.len() as u32)
-            .unwrap();
-        if let Ok(text) = std::str::from_utf8(&buf) {
-            println!("{text}");
-        } else {
-            io::stdout().write_all(&buf).unwrap();
-        }
+        assert!(!buf.is_empty())
     }
 
     #[test]
@@ -239,7 +229,7 @@ mod tests {
         let connection = WinHttpConnection::new(&session, "www.example.com", 443).unwrap();
         let request = WinHttpRequest::new(&connection, "GET", "/").unwrap();
 
-        let body = "asd";
+        let body = "Example body";
 
         request.send(None, Some(body)).unwrap();
         request.receive().unwrap();
@@ -248,10 +238,7 @@ mod tests {
         request
             .read(buf.as_mut_ptr() as *mut _, buf.len() as u32)
             .unwrap();
-        if let Ok(text) = std::str::from_utf8(&buf) {
-            println!("{text}");
-        } else {
-            io::stdout().write_all(&buf).unwrap();
-        }
+
+        assert!(!buf.is_empty())
     }
 }

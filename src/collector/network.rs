@@ -1,3 +1,4 @@
+use std::fmt::{self, Display, Formatter};
 use windows::Win32::NetworkManagement::IpHelper::GAA_FLAG_INCLUDE_PREFIX;
 use windows::Win32::NetworkManagement::IpHelper::GetAdaptersAddresses;
 use windows::Win32::NetworkManagement::IpHelper::IP_ADAPTER_ADDRESSES_LH;
@@ -15,7 +16,6 @@ pub struct NetworkInfo {
     pub adapters_info: Result<Vec<Adapter>, Error>,
 }
 
-#[derive(Debug)]
 pub struct Adapter {
     pub friendly_name: String,
     pub description: String,
@@ -224,15 +224,50 @@ impl NetworkInfo {
     }
 }
 
+impl Display for Adapter {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        writeln!(f, "Adapter: {}", self.friendly_name)?;
+        writeln!(f, "  Description: {}", self.description)?;
+        if let Some(ref ips) = self.ipv4_addresses {
+            writeln!(f, "  IPv4 Addresses: {}", ips.join(", "))?;
+        } else {
+            writeln!(f, "  IPv4 Addresses: None")?;
+        }
+        writeln!(
+            f,
+            "  Default Gateway: {}",
+            self.gateways.as_deref().unwrap_or("None")
+        )
+    }
+}
+
+impl Display for NetworkInfo {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        writeln!(
+            f,
+            "Hostname: {}",
+            self.hostname.as_ref().map_or("Unavailable", |h| h.as_str())
+        )?;
+        writeln!(f, "Domain/Workgroup: {}", self.domain_or_workgroup)?;
+        writeln!(f, "Status: {}", self.status)?;
+        writeln!(f, "Adapters:")?;
+        match &self.adapters_info {
+            Ok(adapters) => {
+                for adapter in adapters {
+                    writeln!(f, "{}", adapter)?;
+                }
+            }
+            Err(_) => writeln!(f, "  Unable to retrieve adapters")?,
+        }
+        Ok(())
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     #[test]
     fn get_network_info() {
         let nwinfo = NetworkInfo::collect().expect("Failed to collect network info");
-        println!("hostname: {:?}", nwinfo.hostname);
-        println!("domain_or_workgroup: {}", nwinfo.domain_or_workgroup);
-        println!("status: {}", nwinfo.status);
-        println!("adapters: {:?}", nwinfo.adapters_info);
     }
 }

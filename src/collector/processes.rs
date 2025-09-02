@@ -7,18 +7,18 @@ use windows::Win32::System::ProcessStatus::{
 use windows::Win32::System::Threading::*;
 
 #[derive(Debug)]
-struct ProcessList {
-    processes: Vec<Process>,
+pub struct ProcessList {
+    pub processes: Vec<Process>,
 }
 
 #[derive(Debug)]
 struct Process {
-    pid: u32,
-    name: Option<String>,
+    pub pid: u32,
+    pub name: String,
 }
 
 impl ProcessList {
-    fn collect() -> Result<Self, windows::core::Error> {
+    pub fn collect() -> Result<Self, windows::core::Error> {
         let pids = Self::get_pid_list()?;
 
         let mut processes: Vec<Process> = Vec::new();
@@ -92,6 +92,14 @@ impl ProcessList {
     }
 }
 
+impl std::fmt::Display for ProcessList {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        for process in self.processes.iter() {
+            write!(f, "PID: {} -> {}", process.pid, process.name)?;
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -99,7 +107,6 @@ mod tests {
     #[test]
     fn get_processes() {
         let processes = ProcessList::collect();
-        println!("{:?}", processes);
 
         assert!(processes.is_ok(), "ProcessList shouldn't be Err");
     }

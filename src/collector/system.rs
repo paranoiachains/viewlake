@@ -1,10 +1,11 @@
+use std::fmt::Result;
+use std::fmt::{Display, Formatter};
 use windows::Wdk::System::SystemServices::*;
 use windows::Win32::Foundation::STATUS_SUCCESS;
 use windows::Win32::System::SystemInformation::*;
 use windows::Win32::System::SystemServices::*;
 use windows::core::Error;
 
-#[derive(Debug)]
 pub struct SystemInfo {
     pub arch: String,
     pub product_type: String,
@@ -77,6 +78,14 @@ impl Architecture {
     }
 }
 
+impl Display for SystemInfo {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
+        write!(f, "Arch: {}", self.arch)?;
+        write!(f, "Product Type: {}", self.product_type)?;
+        write!(f, "Version: {}", self.version)?;
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -84,9 +93,7 @@ mod tests {
     fn get_system_info() {
         let os_info = SystemInfo::collect().expect("Failed to get OS info");
 
-        println!("Arch: {}", os_info.arch);
-        println!("OS Version: {}", os_info.version);
-        println!("Product Type: {}", os_info.product_type);
+        println!("{}", os_info);
 
         assert!(
             os_info.arch == "AMD64" || os_info.arch == "ARM64" || os_info.arch == "Unknown",

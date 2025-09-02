@@ -1,5 +1,5 @@
 use super::winhttp::{WinHttpConnection, WinHttpRequest, WinHttpSession};
-use std::io::Write;
+use std::{collections::HashMap, io::Write};
 use windows::core::{Error, HSTRING};
 
 pub struct Client {
@@ -48,9 +48,7 @@ impl Client {
             .read(buf.as_mut_ptr() as *mut _, buf.len() as u32)?;
 
         match std::str::from_utf8(&buf) {
-            Ok(data) => Ok(Response {
-                data: data.to_string(),
-            }),
+            Ok(data) => Ok(Response::new(data.to_string())),
             Err(_) => Err(Error::new(windows::core::HRESULT(1), HSTRING::new())),
         }
     }
@@ -86,16 +84,48 @@ impl<'a> Request<'a> {
 }
 
 pub struct Response {
-    pub data: String,
+    pub code: u16,
+    pub headers: HashMap<String, String>,
+    pub body: Vec<u8>,
 }
 
 impl Response {
+    pub fn new(raw: String) -> Self {
+        let mut lines = raw.lines();
+
+        let status_line = lines.next().unwrap_or("");
+        let mut parts = status_line.split_whitespace();
+        let code = parts
+            .next()
+            .and_then(|c| c.parse::<u16>().ok())
+            .unwrap_or(0);
+
+        let mut headers = HashMap::new();
+        for line in &mut lines {
+            if line.trim().is_empty() {
+                break;
+            }
+            if let Some((k, v)) = line.split_once(':') {
+                headers.insert(k.trim().to_string(), v.trim().to_string());
+            }
+        }
+
+        let body_str = lines.collect::<Vec<_>>().join("\n");
+        let body = body_str.into_bytes();
+
+        Self {
+            code,
+            headers,
+            body,
+        }
+    }
+
     pub fn into_stdout(&self) {
         std::io::stdout().write_all(self.data.as_bytes()).unwrap();
     }
 }
 
-// Warning: These tests send actual requests
+// Warning: These tests send actual requests (integrational)
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -125,7 +155,7 @@ mod tests {
             .receive_response(&handle)
             .expect("Failed to receive response");
 
-        response.into_stdout();
+        assert!(!response.data.is_empty())
     }
 
     #[test]
@@ -137,9 +167,11 @@ mod tests {
         let handle = client
             .send_request(request)
             .expect("Failed to send request");
-        let _response = client
+        let response = client
             .receive_response(&handle)
             .expect("Failed to receive response");
+
+        assert!(!response.data.is_empty());
     }
 
     #[test]
@@ -150,17 +182,21 @@ mod tests {
         let handle_1 = client
             .send_request(request_1)
             .expect("Failed to send request");
-        let _response_1 = client
+        let response_1 = client
             .receive_response(&handle_1)
             .expect("Failed to receive response");
+
+        assert!(!response_1.data.is_empty());
 
         let request_2 = Request::new("httpbin.org", 443, "POST", "/anything", None, None);
         let handle_2 = client
             .send_request(request_2)
             .expect("Failed to send request");
-        let _response_2 = client
+        let response_2 = client
             .receive_response(&handle_2)
             .expect("Failed to receive response");
+
+        assert!(!response_2.data.is_empty())
     }
 
     #[test]
@@ -171,16 +207,51 @@ mod tests {
         let handle_1 = client
             .send_request(request_1)
             .expect("Failed to send request");
-        let _response_1 = client
+        let response_1 = client
             .receive_response(&handle_1)
             .expect("Failed to receive response");
+
+        assert!(!response_1.data.is_empty());
 
         let request_2 = Request::new("example.com", 443, "GET", "/", None, None);
         let _handle_2 = client
             .send_request(request_2)
             .expect("Failed to send request");
-        let _response_2 = client
+        let response_2 = client
             .receive_response(&_handle_2)
             .expect("Failed to receive response");
+
+        assert!(!response_2.data.is_empty())
+    }
+
+    #[test]
+    fn test_request_build() {
+        let raw = String::from(
+            "HTTP/1.1 200 OK\r\n
+            Date: Tue, 02 Sep 2025 19:20:00 GMT\r\n
+            Content-Type: text/plain; charset=utf-8\r\n
+            Content-Length: 13\r\n
+            Connection: close\r\n
+            \r\n
+            Hello, world!",
+        );
+
+        let response = Response::new(raw);
+        assert_eq!(response.code, 200);
+        assert_eq!(response.body, "Hello, world!");
+
+        let mut expected_headers = std::collections::HashMap::new();
+        expected_headers.insert(
+            "Date".to_string(),
+            "Tue, 02 Sep 2025 19:20:00 GMT".to_string(),
+        );
+        expected_headers.insert(
+            "Content-Type".to_string(),
+            "text/plain; charset=utf-8".to_string(),
+        );
+        expected_headers.insert("Content-Length".to_string(), "13".to_string());
+        expected_headers.insert("Connection".to_string(), "close".to_string());
+
+        assert_eq!(response.headers, expected_headers);
     }
 }
