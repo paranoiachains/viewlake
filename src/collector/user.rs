@@ -2,12 +2,13 @@ use std::fmt::{self, Display, Formatter};
 use windows::Win32::Foundation::*;
 use windows::Win32::Security::*;
 use windows::Win32::System::Threading::{GetCurrentProcess, OpenProcessToken};
+use windows::core::Error;
 use windows::{Win32::System::WindowsProgramming::GetUserNameW, core::PWSTR};
 
 pub struct UserInfo {
-    pub username: Result<String, windows::core::Error>,
-    pub groups: Result<Vec<String>, windows::core::Error>,
-    pub privileges: Result<Vec<String>, windows::core::Error>,
+    pub username: Result<String, Error>,
+    pub groups: Result<Vec<String>, Error>,
+    pub privileges: Result<Vec<String>, Error>,
 }
 
 impl UserInfo {
@@ -19,7 +20,7 @@ impl UserInfo {
         }
     }
 
-    fn get_username() -> Result<String, windows::core::Error> {
+    fn get_username() -> Result<String, Error> {
         let mut buffer: [u16; 256] = [0; 256];
         #[allow(unused_mut)]
         let mut size = buffer.len() as u32;
@@ -29,7 +30,7 @@ impl UserInfo {
         }
     }
 
-    fn get_user_groups() -> Result<Vec<String>, windows::core::Error> {
+    fn get_user_groups() -> Result<Vec<String>, Error> {
         unsafe {
             let mut token_handle: HANDLE = HANDLE::default();
             let handle = GetCurrentProcess();
@@ -88,7 +89,7 @@ impl UserInfo {
         }
     }
 
-    fn get_user_privileges() -> Result<Vec<String>, windows::core::Error> {
+    fn get_user_privileges() -> Result<Vec<String>, Error> {
         unsafe {
             let mut token_handle: HANDLE = HANDLE::default();
             let handle = GetCurrentProcess();

@@ -1,17 +1,17 @@
 mod winhttp;
 
-use super::winhttp::{WinHttpConnection, WinHttpRequest, WinHttpSession};
+use crate::comms::client::winhttp;
 use std::{collections::HashMap, io::Write};
 use windows::core::{Error, HSTRING};
 
 pub struct Client {
-    pub session: WinHttpSession,
-    pub connection: Option<WinHttpConnection>, // Store hostname with connection
+    session: WinHttpSession,
+    connection: Option<WinHttpConnection>, // Store hostname with connection
 }
 
 const DEFAULT_AGENT: &'static str = "SomeAgent"; // TODO: randomize user-agent
 
-pub struct RequestHandle(WinHttpRequest);
+struct RequestHandle(WinHttpRequest);
 
 impl Client {
     pub fn new() -> Result<Self, Error> {

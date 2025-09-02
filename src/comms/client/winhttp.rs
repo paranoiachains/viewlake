@@ -1,7 +1,7 @@
 use std::os::raw::c_void;
-use widestring::Utf16String;
-use windows::Win32::Networking::WinHttp::*;
-use windows::core::*;
+use widestring;
+use windows::Win32::Networking::WinHttp;
+use windows::core::{Error, PCWSTR};
 
 // Steps with WinHTTP:
 // Open a session with WinHttpOpen
@@ -13,24 +13,24 @@ use windows::core::*;
 
 type HINTERNET = *mut c_void;
 
-pub struct WinHttpSession(HINTERNET);
+pub(super) struct WinHttpSession(HINTERNET);
 
 fn to_wide(s: &str) -> Utf16String {
-    let mut u16 = Utf16String::from_str(s);
+    let mut u16 = widestring::Utf16String::from_str(s);
     u16.push('\0');
     u16
 }
 
 impl WinHttpSession {
-    pub fn new(agent: &str) -> Result<Self> {
+    pub(super) fn new(agent: &str) -> Result<Self> {
         let agent_wide = to_wide(agent);
         unsafe {
-            let session = WinHttpOpen(
+            let session = WinHttp::WinHttpOpen(
                 PCWSTR(agent_wide.as_ptr()),
-                WINHTTP_ACCESS_TYPE_NO_PROXY,
+                WinHttp::WINHTTP_ACCESS_TYPE_NO_PROXY,
                 PCWSTR::null(), // WINHTTP_NO_PROXY_NAME
                 PCWSTR::null(), // WINHTTP_NO_PROXY_BYPASS
-                WINHTTP_FLAG_SECURE_DEFAULTS,
+                WinHttp::WINHTTP_FLAG_SECURE_DEFAULTS,
             );
 
             if session.is_null() {
@@ -44,20 +44,21 @@ impl WinHttpSession {
 
 impl Drop for WinHttpSession {
     fn drop(&mut self) {
-        unsafe { WinHttpCloseHandle(self.0).unwrap() }
+        unsafe { WinHttp::WinHttpCloseHandle(self.0).unwrap() }
     }
 }
 
-pub struct WinHttpConnection {
-    pub handle: HINTERNET,
-    pub hostname: String,
+pub(super) struct WinHttpConnection {
+    pub(super) handle: HINTERNET,
+    pub(super) hostname: String,
 }
 
 impl WinHttpConnection {
-    pub fn new(session: &WinHttpSession, hostname: &str, port: u16) -> Result<Self> {
+    pub(super) fn new(session: &WinHttpSession, hostname: &str, port: u16) -> Result<Self> {
         let hostname_wide = to_wide(hostname);
         unsafe {
-            let handle = WinHttpConnect(session.0, PCWSTR(hostname_wide.as_ptr()), port, 0);
+            let handle =
+                WinHttp::WinHttpConnect(session.0, PCWSTR(hostname_wide.as_ptr()), port, 0);
 
             if handle.is_null() {
                 return Err(Error::from_win32());
@@ -73,14 +74,14 @@ impl WinHttpConnection {
 
 impl Drop for WinHttpConnection {
     fn drop(&mut self) {
-        unsafe { WinHttpCloseHandle(self.handle).unwrap() }
+        unsafe { WinHttp::WinHttpCloseHandle(self.handle).unwrap() }
     }
 }
 
-pub struct WinHttpRequest(HINTERNET);
+pub(super) struct WinHttpRequest(HINTERNET);
 
 impl WinHttpRequest {
-    pub fn new(connection: &WinHttpConnection, method: &str, path: &str) -> Result<Self> {
+    pub(super) fn new(connection: &WinHttpConnection, method: &str, path: &str) -> Result<Self> {
         let method_wide = to_wide(method);
         let path_wide = to_wide(path);
         let null = PCWSTR::null();
@@ -94,7 +95,7 @@ impl WinHttpRequest {
                 PCWSTR::null(), // HTTP version (1.1)
                 PCWSTR::null(), // Referer
                 null_accept,    // Accept
-                WINHTTP_FLAG_SECURE,
+                WinHttp::WINHTTP_FLAG_SECURE,
             );
 
             if request.is_null() {
@@ -105,7 +106,7 @@ impl WinHttpRequest {
         }
     }
 
-    pub fn send(
+    pub(super) fn send(
         &self,
         headers: Option<Vec<&str>>,
         body: Option<&str>, // pointer + length of body
@@ -122,7 +123,7 @@ impl WinHttpRequest {
             self.add_headers(headers_ptr)?;
         }
 
-        unsafe { WinHttpSendRequest(self.0, None, body_ptr, body_len, body_len, 0)? }
+        unsafe { WinHttp::WinHttpSendRequest(self.0, None, body_ptr, body_len, body_len, 0)? }
 
         Ok(())
     }
@@ -141,18 +142,20 @@ impl WinHttpRequest {
 
         combined.push(0);
 
-        unsafe { WinHttpAddRequestHeaders(self.0, &combined, WINHTTP_ADDREQ_FLAG_ADD) }
+        unsafe {
+            WinHttp::WinHttpAddRequestHeaders(self.0, &combined, WinHttp::WINHTTP_ADDREQ_FLAG_ADD)
+        }
     }
 
-    pub fn receive(&self) -> Result<()> {
-        unsafe { WinHttpReceiveResponse(self.0, std::ptr::null_mut() as *mut c_void) }
+    pub(super) fn receive(&self) -> Result<()> {
+        unsafe { WinHttp::WinHttpReceiveResponse(self.0, std::ptr::null_mut() as *mut c_void) }
     }
 
-    pub fn read(&self, buf: *mut c_void, buf_len: u32) -> Result<()> {
+    pub(super) fn read(&self, buf: *mut c_void, buf_len: u32) -> Result<()> {
         unsafe {
             let mut bytes_read: u32 = 0;
 
-            WinHttpReadData(self.0, buf, buf_len, &mut bytes_read)?;
+            WinHttp::WinHttpReadData(self.0, buf, buf_len, &mut bytes_read)?;
 
             Ok(())
         }
@@ -161,7 +164,7 @@ impl WinHttpRequest {
 
 impl Drop for WinHttpRequest {
     fn drop(&mut self) {
-        unsafe { WinHttpCloseHandle(self.0).unwrap() }
+        unsafe { WinHttp::WinHttpCloseHandle(self.0).unwrap() }
     }
 }
 
