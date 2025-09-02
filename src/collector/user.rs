@@ -166,6 +166,7 @@ impl Display for UserInfo {
             }
             _ => writeln!(f, "  None")?,
         }
+
         Ok(())
     }
 }

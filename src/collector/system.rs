@@ -83,6 +83,8 @@ impl Display for SystemInfo {
         write!(f, "Arch: {}", self.arch)?;
         write!(f, "Product Type: {}", self.product_type)?;
         write!(f, "Version: {}", self.version)?;
+
+        Ok(())
     }
 }
 

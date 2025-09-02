@@ -1,3 +1,5 @@
+mod winhttp;
+
 use super::winhttp::{WinHttpConnection, WinHttpRequest, WinHttpSession};
 use std::{collections::HashMap, io::Write};
 use windows::core::{Error, HSTRING};

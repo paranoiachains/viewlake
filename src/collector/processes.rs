@@ -6,12 +6,10 @@ use windows::Win32::System::ProcessStatus::{
 };
 use windows::Win32::System::Threading::*;
 
-#[derive(Debug)]
 pub struct ProcessList {
     pub processes: Vec<Process>,
 }
 
-#[derive(Debug)]
 struct Process {
     pub pid: u32,
     pub name: String,
@@ -95,7 +93,9 @@ impl ProcessList {
 impl std::fmt::Display for ProcessList {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         for process in self.processes.iter() {
-            write!(f, "PID: {} -> {}", process.pid, process.name)?;
+            writeln!(f, "PID: {} -> {}", process.pid, process.name)?;
+
+            Ok(())
         }
     }
 }

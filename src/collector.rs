@@ -42,6 +42,7 @@ impl Display for SystemFingerprint {
              User:\n{}",
             self.network, self.processes, self.system, self.user
         )?;
+
         Ok(())
     }
 }
