@@ -9,6 +9,8 @@ mod processes;
 mod system;
 mod user;
 
+/// Represents a complete fingerprint of the system.
+/// Collects network, processes, system info, and user info.
 pub struct SystemFingerprint {
     pub network: NetworkInfo,
     pub processes: ProcessList,
@@ -53,8 +55,9 @@ mod tests {
 
     #[test]
     fn collect_system_fingerprint() -> Result<()> {
-        let _sys_fingerprint = SystemFingerprint::collect()?;
-
+        let sys_fingerprint = SystemFingerprint::collect()?;
+        assert!(!sys_fingerprint.network.adapters_info.is_ok());
+        assert!(!sys_fingerprint.processes.list.is_empty());
         Ok(())
     }
 }

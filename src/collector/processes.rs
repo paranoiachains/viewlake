@@ -7,7 +7,7 @@ use windows::Win32::System::ProcessStatus::{
 use windows::Win32::System::Threading::*;
 
 pub struct ProcessList {
-    pub processes: Vec<Process>,
+    pub list: Vec<Process>,
 }
 
 pub struct Process {
@@ -38,7 +38,7 @@ impl ProcessList {
             processes.push(process);
         }
 
-        Ok(ProcessList { processes })
+        Ok(ProcessList { list: processes })
     }
 
     fn get_pid_list() -> Result<Vec<u32>, windows::core::Error> {
@@ -95,7 +95,7 @@ impl ProcessList {
 
 impl std::fmt::Display for ProcessList {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        for process in self.processes.iter() {
+        for process in self.list.iter() {
             writeln!(f, "PID: {} -> {}", process.pid, process.name)?;
         }
         Ok(())

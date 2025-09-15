@@ -1,9 +1,11 @@
 #![allow(dead_code)]
+/// High level API for WinHTTP
 mod winhttp;
 
 use crate::comms::client::winhttp::*;
 use std::collections::HashMap;
-use windows::core::{Error, HSTRING, Result};
+use std::os::raw::c_void;
+use windows::core::Result;
 
 /// Abstraction over WinHttpSession and WinHttpConnection
 pub struct Client {
@@ -15,6 +17,31 @@ const DEFAULT_AGENT: &'static str = "SomeAgent"; // TODO: randomize user-agent
 
 pub struct RequestHandle(WinHttpRequest);
 
+impl RequestHandle {
+    pub fn read(&self) -> Result<Vec<u8>> {
+        let mut body = Vec::new();
+        let mut buf = [0u8; 4096];
+
+        loop {
+            let bytes_read = self
+                .0
+                .read(buf.as_mut_ptr() as *mut c_void, buf.len() as u32)?;
+
+            if bytes_read == 0 {
+                break; // no more data
+            }
+
+            body.extend_from_slice(&buf[..bytes_read as usize]);
+        }
+
+        Ok(body)
+    }
+
+    fn receive(&self) -> Result<()> {
+        self.0.receive()
+    }
+}
+
 impl Client {
     pub fn new() -> Result<Self> {
         let session = WinHttpSession::new(DEFAULT_AGENT)?;
@@ -24,8 +51,14 @@ impl Client {
         })
     }
 
+    /// Send request and receive response
+    pub fn request(&mut self, request: Request) -> Result<Response> {
+        let handle = self.send_request(request)?;
+        self.receive_response(&handle)
+    }
+
     /// Sends request and returns RequestHandle, which is supposed to be passed to receive_response
-    pub fn send_request(&mut self, request: Request) -> Result<RequestHandle> {
+    fn send_request(&mut self, request: Request) -> Result<RequestHandle> {
         if self
             .connection
             .as_ref()
@@ -45,18 +78,13 @@ impl Client {
     }
 
     /// Receives response using provided RequestHandle obtained from send_request func
-    pub fn receive_response(&self, handle: &RequestHandle) -> Result<Response> {
-        handle.0.receive()?;
+    fn receive_response(&self, handle: &RequestHandle) -> Result<Response> {
+        handle.receive()?;
 
-        let mut buf = [0u8; 4096];
-        handle
-            .0
-            .read(buf.as_mut_ptr() as *mut _, buf.len() as u32)?;
+        let response = handle.read()?;
 
-        match std::str::from_utf8(&buf) {
-            Ok(data) => Ok(Response::new(data.to_string())),
-            Err(_) => Err(Error::new(windows::core::HRESULT(1), HSTRING::new())),
-        }
+        let data = String::from_utf8_lossy(&response).into_owned();
+        Ok(Response::new(data))
     }
 }
 
