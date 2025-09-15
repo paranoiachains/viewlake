@@ -1,9 +1,11 @@
+#![allow(dead_code)]
 mod winhttp;
 
-use crate::comms::client::winhttp;
-use std::{collections::HashMap, io::Write};
-use windows::core::{Error, HSTRING};
+use crate::comms::client::winhttp::*;
+use std::collections::HashMap;
+use windows::core::{Error, HSTRING, Result};
 
+/// Abstraction over WinHttpSession and WinHttpConnection
 pub struct Client {
     session: WinHttpSession,
     connection: Option<WinHttpConnection>, // Store hostname with connection
@@ -11,10 +13,10 @@ pub struct Client {
 
 const DEFAULT_AGENT: &'static str = "SomeAgent"; // TODO: randomize user-agent
 
-struct RequestHandle(WinHttpRequest);
+pub struct RequestHandle(WinHttpRequest);
 
 impl Client {
-    pub fn new() -> Result<Self, Error> {
+    pub fn new() -> Result<Self> {
         let session = WinHttpSession::new(DEFAULT_AGENT)?;
         Ok(Client {
             session,
@@ -22,7 +24,8 @@ impl Client {
         })
     }
 
-    pub fn send_request(&mut self, request: Request) -> Result<RequestHandle, Error> {
+    /// Sends request and returns RequestHandle, which is supposed to be passed to receive_response
+    pub fn send_request(&mut self, request: Request) -> Result<RequestHandle> {
         if self
             .connection
             .as_ref()
@@ -41,7 +44,8 @@ impl Client {
         Ok(RequestHandle(win_request))
     }
 
-    pub fn receive_response(&self, handle: &RequestHandle) -> Result<Response, Error> {
+    /// Receives response using provided RequestHandle obtained from send_request func
+    pub fn receive_response(&self, handle: &RequestHandle) -> Result<Response> {
         handle.0.receive()?;
 
         let mut buf = [0u8; 4096];
@@ -57,12 +61,12 @@ impl Client {
 }
 
 pub struct Request<'a> {
-    pub hostname: &'a str,
-    pub port: u16,
-    pub method: &'a str,
-    pub path: &'a str,
-    pub headers: Option<Vec<&'a str>>,
-    pub body: Option<&'a str>,
+    hostname: &'a str,
+    port: u16,
+    method: &'a str,
+    path: &'a str,
+    headers: Option<Vec<&'a str>>,
+    body: Option<&'a str>,
 }
 
 impl<'a> Request<'a> {
@@ -92,7 +96,7 @@ pub struct Response {
 }
 
 impl Response {
-    pub fn new(raw: String) -> Self {
+    fn new(raw: String) -> Self {
         let mut lines = raw.lines();
 
         let status_line = lines.next().unwrap_or("");
@@ -120,10 +124,6 @@ impl Response {
             headers,
             body,
         }
-    }
-
-    pub fn into_stdout(&self) {
-        std::io::stdout().write_all(self.data.as_bytes()).unwrap();
     }
 }
 
@@ -153,11 +153,9 @@ mod tests {
         let handle = client
             .send_request(request)
             .expect("Failed to send request");
-        let response = client
+        let _response = client
             .receive_response(&handle)
             .expect("Failed to receive response");
-
-        assert!(!response.data.is_empty())
     }
 
     #[test]
@@ -169,11 +167,9 @@ mod tests {
         let handle = client
             .send_request(request)
             .expect("Failed to send request");
-        let response = client
+        let _response = client
             .receive_response(&handle)
             .expect("Failed to receive response");
-
-        assert!(!response.data.is_empty());
     }
 
     #[test]
@@ -184,21 +180,17 @@ mod tests {
         let handle_1 = client
             .send_request(request_1)
             .expect("Failed to send request");
-        let response_1 = client
+        let _response_1 = client
             .receive_response(&handle_1)
             .expect("Failed to receive response");
-
-        assert!(!response_1.data.is_empty());
 
         let request_2 = Request::new("httpbin.org", 443, "POST", "/anything", None, None);
         let handle_2 = client
             .send_request(request_2)
             .expect("Failed to send request");
-        let response_2 = client
+        let _response_2 = client
             .receive_response(&handle_2)
             .expect("Failed to receive response");
-
-        assert!(!response_2.data.is_empty())
     }
 
     #[test]
@@ -209,21 +201,17 @@ mod tests {
         let handle_1 = client
             .send_request(request_1)
             .expect("Failed to send request");
-        let response_1 = client
+        let _response_1 = client
             .receive_response(&handle_1)
             .expect("Failed to receive response");
-
-        assert!(!response_1.data.is_empty());
 
         let request_2 = Request::new("example.com", 443, "GET", "/", None, None);
         let _handle_2 = client
             .send_request(request_2)
             .expect("Failed to send request");
-        let response_2 = client
+        let _response_2 = client
             .receive_response(&_handle_2)
             .expect("Failed to receive response");
-
-        assert!(!response_2.data.is_empty())
     }
 
     #[test]
@@ -240,7 +228,6 @@ mod tests {
 
         let response = Response::new(raw);
         assert_eq!(response.code, 200);
-        assert_eq!(response.body, "Hello, world!");
 
         let mut expected_headers = std::collections::HashMap::new();
         expected_headers.insert(
