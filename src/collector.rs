@@ -1,4 +1,4 @@
-use windows::core::Error;
+use windows::core::Result;
 
 use crate::collector::{
     network::NetworkInfo, processes::ProcessList, system::SystemInfo, user::UserInfo,
@@ -17,11 +17,11 @@ pub struct SystemFingerprint {
 }
 
 impl SystemFingerprint {
-    pub fn collect() -> Result<Self, Error> {
+    pub fn collect() -> Result<Self> {
         let network = NetworkInfo::collect()?;
         let processes = ProcessList::collect()?;
         let system = SystemInfo::collect()?;
-        let user = UserInfo::collect()?;
+        let user = UserInfo::collect();
 
         Ok(Self {
             network,
@@ -32,8 +32,8 @@ impl SystemFingerprint {
     }
 }
 
-impl Display for SystemFingerprint {
-    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
+impl std::fmt::Display for SystemFingerprint {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
             "Network:\n{}\n\
@@ -52,7 +52,9 @@ mod tests {
     use super::*;
 
     #[test]
-    fn collect_system_fingerprint() {
-        let sys_fingerprint = SystemFingerprint::collect()?;
+    fn collect_system_fingerprint() -> Result<()> {
+        let _sys_fingerprint = SystemFingerprint::collect()?;
+
+        Ok(())
     }
 }

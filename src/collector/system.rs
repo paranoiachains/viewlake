@@ -1,10 +1,9 @@
-use std::fmt::Result;
 use std::fmt::{Display, Formatter};
 use windows::Wdk::System::SystemServices::*;
 use windows::Win32::Foundation::STATUS_SUCCESS;
 use windows::Win32::System::SystemInformation::*;
 use windows::Win32::System::SystemServices::*;
-use windows::core::Error;
+use windows::core::{Error, Result};
 
 pub struct SystemInfo {
     pub arch: String,
@@ -13,7 +12,7 @@ pub struct SystemInfo {
 }
 
 impl SystemInfo {
-    pub fn collect() -> Result<Self, Error> {
+    pub fn collect() -> Result<Self> {
         let (product_type, version) = Self::os()?;
 
         let arch = match Architecture::get() {
@@ -29,7 +28,7 @@ impl SystemInfo {
         })
     }
 
-    fn os() -> Result<(String, String), Error> {
+    fn os() -> Result<(String, String)> {
         unsafe {
             let mut os_version: OSVERSIONINFOEXW = std::mem::zeroed();
             let ntstatus = RtlGetVersion(&mut os_version as *mut _ as *mut OSVERSIONINFOW);
@@ -79,7 +78,7 @@ impl Architecture {
 }
 
 impl Display for SystemInfo {
-    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "Arch: {}", self.arch)?;
         write!(f, "Product Type: {}", self.product_type)?;
         write!(f, "Version: {}", self.version)?;

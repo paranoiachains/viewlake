@@ -1,7 +1,6 @@
 mod client;
+use crate::comms::client::*;
 use windows::core::Error;
-
-use client;
 
 pub struct Beacon {
     client: Client,
@@ -9,7 +8,7 @@ pub struct Beacon {
 
 impl Beacon {
     pub fn new() -> Result<Self, Error> {
-        let client = client::Client::new()?;
-        Ok(client)
+        let client = Client::new()?;
+        Ok(Self { client })
     }
 }

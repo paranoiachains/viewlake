@@ -10,7 +10,7 @@ pub struct ProcessList {
     pub processes: Vec<Process>,
 }
 
-struct Process {
+pub struct Process {
     pub pid: u32,
     pub name: String,
 }
@@ -31,7 +31,10 @@ impl ProcessList {
                 continue; // Skip unnamed/access denied processes
             }
 
-            let process = Process { pid, name };
+            let process = Process {
+                pid,
+                name: name.unwrap(),
+            };
             processes.push(process);
         }
 
@@ -63,7 +66,7 @@ impl ProcessList {
 
             let handle = match handle_result {
                 Ok(h) => h,
-                Err(e) => return None,
+                Err(_) => return None,
             };
             let mut hmod = [0isize; 1024];
             let mut needed = 0u32;
@@ -94,9 +97,8 @@ impl std::fmt::Display for ProcessList {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         for process in self.processes.iter() {
             writeln!(f, "PID: {} -> {}", process.pid, process.name)?;
-
-            Ok(())
         }
+        Ok(())
     }
 }
 
