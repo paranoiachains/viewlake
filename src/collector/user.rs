@@ -1,4 +1,3 @@
-use std::fmt::{self, Display, Formatter};
 use windows::Win32::Foundation::*;
 use windows::Win32::Security::*;
 use windows::Win32::System::Threading::{GetCurrentProcess, OpenProcessToken};
@@ -137,38 +136,6 @@ impl UserInfo {
 
             Ok(privileges)
         }
-    }
-}
-
-impl Display for UserInfo {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        writeln!(
-            f,
-            "Username: {}",
-            self.username.as_ref().map_or("Unavailable", |u| u.as_str())
-        )?;
-
-        writeln!(f, "Groups:")?;
-        match &self.groups {
-            Ok(groups) if !groups.is_empty() => {
-                for group in groups {
-                    writeln!(f, "  {}", group)?;
-                }
-            }
-            _ => writeln!(f, "  None")?,
-        }
-
-        writeln!(f, "Privileges:")?;
-        match &self.privileges {
-            Ok(privs) if !privs.is_empty() => {
-                for priv_name in privs {
-                    writeln!(f, "  {}", priv_name)?;
-                }
-            }
-            _ => writeln!(f, "  None")?,
-        }
-
-        Ok(())
     }
 }
 

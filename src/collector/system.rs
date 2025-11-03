@@ -1,4 +1,3 @@
-use std::fmt::{Display, Formatter};
 use windows::Wdk::System::SystemServices::*;
 use windows::Win32::Foundation::STATUS_SUCCESS;
 use windows::Win32::System::SystemInformation::*;
@@ -77,24 +76,12 @@ impl Architecture {
     }
 }
 
-impl Display for SystemInfo {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Arch: {}", self.arch)?;
-        write!(f, "Product Type: {}", self.product_type)?;
-        write!(f, "Version: {}", self.version)?;
-
-        Ok(())
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
     #[test]
     fn get_system_info() {
         let os_info = SystemInfo::collect().expect("Failed to get OS info");
-
-        println!("{}", os_info);
 
         assert!(
             os_info.arch == "AMD64" || os_info.arch == "ARM64" || os_info.arch == "Unknown",

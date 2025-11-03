@@ -93,15 +93,6 @@ impl ProcessList {
     }
 }
 
-impl std::fmt::Display for ProcessList {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        for process in self.list.iter() {
-            writeln!(f, "PID: {} -> {}", process.pid, process.name)?;
-        }
-        Ok(())
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;

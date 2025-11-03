@@ -34,21 +34,6 @@ impl SystemFingerprint {
     }
 }
 
-impl std::fmt::Display for SystemFingerprint {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "Network:\n{}\n\
-             Processes:\n{}\n\
-             System:\n{}\n\
-             User:\n{}",
-            self.network, self.processes, self.system, self.user
-        )?;
-
-        Ok(())
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
