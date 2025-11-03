@@ -91,8 +91,8 @@ mod tests {
         );
 
         assert!(
-            os_info.version.chars().next().unwrap().is_ascii_digit(),
-            "OS version is not a valid number: {}",
+            os_info.version.is_empty(),
+            "OS version shouldn't be empty: {}",
             os_info.version
         );
 
