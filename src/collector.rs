@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 use windows::core::Result;
 
 use crate::collector::{
@@ -31,5 +32,62 @@ impl SystemFingerprint {
             system,
             user,
         })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn collect_system_fingerprint_success() {
+        let result = SystemFingerprint::collect();
+        assert!(
+            result.is_ok(),
+            "SystemFingerprint::collect() returned an error"
+        );
+
+        let fingerprint = result.unwrap();
+
+        // Network
+        assert!(
+            fingerprint.network.adapters_info.is_ok(),
+            "fingerprint.network.adapters_info shouldn't be Err"
+        );
+
+        // Processes
+        assert!(
+            !fingerprint.processes.list.is_empty(),
+            "Expected at least one running process"
+        );
+
+        // System
+        assert!(
+            fingerprint.system.version.is_empty(),
+            "OS name should not be empty"
+        );
+        assert!(
+            fingerprint.system.arch.is_empty(),
+            "ARCH shouldn't be empty"
+        );
+
+        // User
+        assert!(
+            fingerprint.user.username.is_ok(),
+            "Username shouldn't be Err"
+        );
+    }
+
+    #[test]
+    fn system_fingerprint() {
+        SystemFingerprint::collect().expect("Failed to collect fingerprint");
+    }
+
+    #[test]
+    fn user_info_should_be_valid() {
+        let fingerprint = SystemFingerprint::collect().unwrap();
+
+        let username = &fingerprint.user.username;
+        assert!(username.is_ok(), "Username shouldn't be Err");
     }
 }

