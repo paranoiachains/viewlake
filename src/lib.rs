@@ -21,7 +21,9 @@ pub fn hello() -> Result<()> {
     let port: u16 = home[1].parse().unwrap();
 
     let mut headers: HashMap<String, String> = HashMap::new();
-    headers.insert("Content-Type".to_string(), "text/plain".to_string());
+    headers
+        .insert("Content-Type".to_string(), "text/plain".to_string())
+        .unwrap();
 
     let body = fingerprint
         .user
@@ -32,10 +34,6 @@ pub fn hello() -> Result<()> {
     let request = Request::new(hostname, port, "POST", "/hi", Some(headers), Some(body));
 
     let response = comm.request(request)?;
-
-    if response.code != 200 {
-        return Err(Error::from_win32());
-    }
 
     println!("Response code [main func]: {}", response.code);
     println!(
