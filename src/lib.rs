@@ -26,6 +26,7 @@ pub fn hello() -> Result<()> {
         return Err(Error::from_win32());
     }
 
+    println!("Response code [main func]: {}", response.code);
     println!("Response [main func]: {:?}", response.body);
 
     Ok(())

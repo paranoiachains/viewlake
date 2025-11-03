@@ -46,10 +46,7 @@ mod tests {
 
         println!("Status code: {}", response.code);
         if let Some(body) = &response.body {
-            println!(
-                "Body (first 200 chars): {}",
-                String::from_utf8_lossy(&body[..std::cmp::min(200, body.len())])
-            );
+            println!("{}", body);
         } else {
             println!("Body is empty");
         }
