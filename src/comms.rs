@@ -96,3 +96,90 @@ impl Response {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    const TEST_HOST: &str = "www.example.com";
+    const TEST_PORT: u16 = 443;
+    const TEST_PATH: &str = "/";
+
+    #[test]
+    fn communicator_creation() {
+        assert!(Communicator::new().is_ok())
+    }
+
+    #[test]
+    fn get_request_basic() {
+        let mut comm = Communicator::new().unwrap();
+
+        let request = Request::new(TEST_HOST, TEST_PORT, "GET", TEST_PATH, None, None);
+
+        let response = comm.request(request).expect("Request failed");
+
+        println!("Status code: {}", response.code);
+        println!("Headers: {:?}", response.headers);
+        println!(
+            "Body (first 200 chars): {}",
+            String::from_utf8_lossy(&response.body[..std::cmp::min(200, response.body.len())])
+        );
+
+        assert!(
+            response.code >= 200 && response.code < 300,
+            "Expected 2xx status code"
+        );
+        assert!(!response.body.is_empty(), "Body should not be empty");
+        assert!(
+            response.headers.contains_key("Content-Type")
+                || response.headers.contains_key("content-type")
+        );
+    }
+
+    #[test]
+    fn get_request_with_headers() {
+        let mut comm = Communicator::new().unwrap();
+
+        let request = Request::new(
+            TEST_HOST,
+            TEST_PORT,
+            "GET",
+            TEST_PATH,
+            Some(vec!["User-Agent: RustTestClient"]),
+            None,
+        );
+
+        let response = comm.request(request).unwrap();
+
+        println!("Status code: {}", response.code);
+        assert!(response.code >= 200 && response.code < 300);
+        assert!(!response.body.is_empty());
+    }
+
+    #[test]
+    fn post_request_with_body() {
+        let mut comm = Communicator::new().unwrap();
+
+        let body_content = "Hello World";
+
+        let request = Request::new(
+            TEST_HOST,
+            TEST_PORT,
+            "POST",
+            TEST_PATH,
+            None,
+            Some(body_content),
+        );
+
+        let response = comm.request(request).unwrap();
+
+        println!("Status code: {}", response.code);
+        println!(
+            "Body (first 200 chars): {}",
+            String::from_utf8_lossy(&response.body[..std::cmp::min(200, response.body.len())])
+        );
+
+        assert!(response.code >= 200 && response.code < 300);
+        assert!(!response.body.is_empty());
+    }
+}
