@@ -91,7 +91,7 @@ impl Client {
         let request_handle = RequestHandle(WinHttpRequest::new(&connection, method, path)?);
 
         request_handle.send(headers, body)?;
-        request_handle.receive();
+        request_handle.receive()?;
 
         let body = request_handle.read().unwrap();
         let status_code = request_handle.status_code()?;
