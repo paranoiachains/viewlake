@@ -13,7 +13,7 @@ pub fn collect() -> Result<SystemFingerprint> {
 
 pub fn send_initial() -> Result<Response> {
     let mut comm = Communicator::new()?;
-    let request = Request::new("httpbin.org", 443, "GET", "/", None, None);
+    let request = Request::new("www.example.com", 443, "GET", "/", None, None);
 
     comm.request(request)
 }
