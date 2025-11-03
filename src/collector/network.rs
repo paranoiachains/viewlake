@@ -228,7 +228,32 @@ mod tests {
     use super::*;
 
     #[test]
-    fn get_network_info() {
-        let _nwinfo = NetworkInfo::collect().expect("Failed to collect network info");
+    fn test_collect_network_info() {
+        let info = NetworkInfo::collect().expect("Failed to collect network info");
+
+        let hostname = info.hostname.as_ref().expect("hostname error");
+        assert!(!hostname.is_empty(), "Hostname is empty");
+
+        let valid_statuses = [
+            "Unjoined",
+            "Joined to Workgroup",
+            "Joined to Domain",
+            "Unknown",
+        ];
+        assert!(
+            valid_statuses.contains(&info.status.as_str()),
+            "Unexpected status: {}",
+            info.status
+        );
+
+        let adapters = info.adapters_info.as_ref().expect("adapters_info failed");
+        assert!(!adapters.is_empty(), "No network adapters found");
+
+        for adapter in adapters {
+            println!("Adapter: {}", adapter.friendly_name);
+            println!("Description: {}", adapter.description);
+            println!("IPv4: {:?}", adapter.ipv4_addresses);
+            println!("Gateway: {:?}", adapter.gateways);
+        }
     }
 }

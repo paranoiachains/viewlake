@@ -148,5 +148,24 @@ mod tests {
         let info = UserInfo::collect();
 
         assert!(info.username.is_ok(), "Username should not be Err");
+        assert!(
+            !info.username.unwrap().is_empty(),
+            "Username should not be empty"
+        );
+        println!("Username: {}", info.username.unwrap());
+
+        assert!(info.groups.is_ok(), "Groups should not be Err");
+        assert!(
+            !info.groups.unwrap().is_empty(),
+            "Groups should not be empty"
+        );
+        println!("Groups: {:?}", info.groups.unwrap());
+
+        assert!(info.privileges.is_ok(), "Privileges should not be Err");
+        assert!(
+            info.privileges.unwrap().is_empty(),
+            "Privileges should not be empty"
+        );
+        println!("Privileges: {:?}", info.privileges.unwrap());
     }
 }

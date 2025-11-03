@@ -99,8 +99,13 @@ mod tests {
 
     #[test]
     fn get_processes() {
-        let processes = ProcessList::collect();
+        let processes =
+            ProcessList::collect().expect("ProcessList::collect() should not return Err");
 
-        assert!(processes.is_ok(), "ProcessList shouldn't be Err");
+        let proc_list = processes.unwrap();
+        assert!(
+            proc_list.list.is_empty(),
+            "There should be at least one process"
+        );
     }
 }
