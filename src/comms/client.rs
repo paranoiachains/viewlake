@@ -6,6 +6,8 @@ use crate::comms::client::winhttp::{WinHttpConnection, WinHttpRequest, WinHttpSe
 use std::os::raw::c_void;
 use windows::core::Result;
 
+use std::collections::HashMap;
+
 /// Abstraction over WinHttpSession and WinHttpConnection
 pub struct Client {
     session: WinHttpSession,
@@ -14,10 +16,12 @@ pub struct Client {
 
 const DEFAULT_AGENT: &'static str = "SomeAgent"; // TODO: randomize user-agent
 
+/// Abstraction over WinHttpRequest. Implements: 'read' method (Reads response and outputs vector
+/// of bytes) and 'receive' (Response must be initially received before read)
 pub struct RequestHandle(pub WinHttpRequest);
 
 impl RequestHandle {
-    pub fn read(&self) -> Result<Option<Vec<u8>>> {
+    fn read(&self) -> Result<Option<Vec<u8>>> {
         let mut body = Vec::new();
         let mut buf = [0u8; 4096];
 
@@ -43,6 +47,18 @@ impl RequestHandle {
     fn receive(&self) -> Result<()> {
         self.0.receive()
     }
+
+    fn send(&self, headers: Option<Vec<&str>>, body: Option<&str>) -> Result<()> {
+        self.0.send(headers, body)
+    }
+
+    fn status_code(&self) -> Result<u32> {
+        self.0.status_code()
+    }
+
+    fn headers(&self) -> Result<HashMap<String, String>> {
+        self.0.headers()
+    }
 }
 
 impl Client {
@@ -55,7 +71,7 @@ impl Client {
     }
 
     /// Sends request and returns RequestHandle, which is supposed to be passed to receive
-    pub fn send(
+    pub fn send_and_read(
         &mut self,
         hostname: &str,
         port: u16,
@@ -63,7 +79,7 @@ impl Client {
         path: &str,
         headers: Option<Vec<&str>>,
         body: Option<&str>,
-    ) -> Result<RequestHandle> {
+    ) -> Result<Response> {
         if self
             .connection
             .as_ref()
@@ -72,14 +88,60 @@ impl Client {
             self.connection = Some(WinHttpConnection::new(&self.session, &hostname, port)?);
         }
         let connection = self.connection.as_ref().unwrap();
-        let win_request = WinHttpRequest::new(&connection, method, path)?;
+        let request_handle = RequestHandle(WinHttpRequest::new(&connection, method, path)?);
 
-        win_request.send(headers, body)?;
-        Ok(RequestHandle(win_request))
+        request_handle.send(headers, body)?;
+        request_handle.receive();
+
+        let body = request_handle.read().unwrap();
+        let status_code = request_handle.status_code()?;
+        let headers = request_handle.headers()?;
+
+        Ok(Response::new(status_code, headers, body))
     }
+}
 
-    /// Receives response using provided RequestHandle obtained from send_request func
-    pub fn receive(&self, handle: &RequestHandle) -> Result<()> {
-        handle.receive()
+pub struct Request<'a> {
+    pub hostname: &'a str,
+    pub port: u16,
+    pub method: &'a str,
+    pub path: &'a str,
+    pub headers: Option<Vec<&'a str>>,
+    pub body: Option<&'a str>,
+}
+
+impl<'a> Request<'a> {
+    pub fn new(
+        hostname: &'a str,
+        port: u16,
+        method: &'a str,
+        path: &'a str,
+        headers: Option<Vec<&'a str>>,
+        body: Option<&'a str>,
+    ) -> Self {
+        Request {
+            hostname,
+            port,
+            method,
+            path,
+            headers,
+            body,
+        }
+    }
+}
+
+pub struct Response {
+    pub code: u32,
+    pub headers: HashMap<String, String>,
+    pub body: Option<Vec<u8>>,
+}
+
+impl Response {
+    fn new(code: u32, headers: HashMap<String, String>, body: Option<Vec<u8>>) -> Self {
+        Response {
+            code,
+            headers,
+            body,
+        }
     }
 }

@@ -15,67 +15,14 @@ impl Communicator {
 
     /// Send request and receive response
     pub fn request(&mut self, request: Request) -> Result<Response> {
-        let handle = self.client.send(
+        self.client.send_and_read(
             request.hostname,
             request.port,
             request.method,
             request.path,
             request.headers,
             request.body,
-        )?;
-
-        self.client.receive(&handle)?;
-
-        let code = handle.0.status_code()?;
-        let headers = handle.0.headers()?;
-        let body = handle.read()?;
-
-        Ok(Response::new(code, headers, body))
-    }
-}
-
-pub struct Request<'a> {
-    hostname: &'a str,
-    port: u16,
-    method: &'a str,
-    path: &'a str,
-    headers: Option<Vec<&'a str>>,
-    body: Option<&'a str>,
-}
-
-impl<'a> Request<'a> {
-    pub fn new(
-        hostname: &'a str,
-        port: u16,
-        method: &'a str,
-        path: &'a str,
-        headers: Option<Vec<&'a str>>,
-        body: Option<&'a str>,
-    ) -> Self {
-        Request {
-            hostname,
-            port,
-            method,
-            path,
-            headers,
-            body,
-        }
-    }
-}
-
-pub struct Response {
-    pub code: u32,
-    pub headers: HashMap<String, String>,
-    pub body: Option<Vec<u8>>,
-}
-
-impl Response {
-    fn new(code: u32, headers: HashMap<String, String>, body: Option<Vec<u8>>) -> Self {
-        Response {
-            code,
-            headers,
-            body,
-        }
+        )
     }
 }
 
