@@ -91,7 +91,7 @@ mod tests {
         );
 
         assert!(
-            os_info.version.is_empty(),
+            !os_info.version.is_empty(),
             "OS version shouldn't be empty: {}",
             os_info.version
         );

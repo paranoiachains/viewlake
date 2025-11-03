@@ -63,12 +63,12 @@ mod tests {
 
         // System
         assert!(
-            fingerprint.system.version.is_empty(),
+            !fingerprint.system.version.is_empty(),
             "OS name should not be empty: {}",
             fingerprint.system.version
         );
         assert!(
-            fingerprint.system.arch.is_empty(),
+            !fingerprint.system.arch.is_empty(),
             "ARCH shouldn't be empty"
         );
 
