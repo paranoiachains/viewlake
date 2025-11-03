@@ -4,7 +4,6 @@ use windows::core::Result;
 
 pub struct Communicator {
     client: Client,
-    id: u32,
 }
 
 impl Communicator {
