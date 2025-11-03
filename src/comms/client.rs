@@ -132,11 +132,12 @@ impl<'a> Request<'a> {
 pub struct Response {
     pub code: u32,
     pub headers: HashMap<String, String>,
-    pub body: Option<Vec<u8>>,
+    pub body: Option<String>,
 }
 
 impl Response {
     fn new(code: u32, headers: HashMap<String, String>, body: Option<Vec<u8>>) -> Self {
+        let body = body.map(|bytes| String::from_utf8_lossy(&bytes).into_owned());
         Response {
             code,
             headers,
