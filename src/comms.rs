@@ -3,11 +3,11 @@ use crate::comms::client::*;
 use std::collections::HashMap;
 use windows::core::Result;
 
-pub struct Beacon {
+pub struct Communicator {
     client: Client,
 }
 
-impl Beacon {
+impl Communicator {
     pub fn new() -> Result<Self> {
         let client = Client::new()?;
         Ok(Self { client })
