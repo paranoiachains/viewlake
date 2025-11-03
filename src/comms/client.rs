@@ -2,7 +2,7 @@
 /// High level API for WinHTTP
 mod winhttp;
 
-use crate::comms::client::winhttp::*;
+use crate::comms::client::winhttp::{WinHttpConnection, WinHttpRequest, WinHttpSession};
 use std::os::raw::c_void;
 use windows::core::Result;
 
@@ -79,6 +79,7 @@ impl Client {
         handle.receive()?;
 
         let response = handle.read()?;
+        println!("Response: {:?}", response);
 
         Ok(String::from_utf8_lossy(&response).into_owned())
     }
