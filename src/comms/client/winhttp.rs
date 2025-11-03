@@ -2,7 +2,7 @@ use std::collections::HashMap;
 /// Low-level API for WinHTTP
 use std::os::raw::c_void;
 use widestring::Utf16String;
-use windows::Win32::Networking::WinHttp;
+use windows::Win32::Networking::WinHttp::{self, WinHttpSetOption};
 use windows::core::{Error, PCWSTR, Result};
 
 // Steps with WinHTTP:
@@ -159,6 +159,25 @@ impl WinHttpRequest {
 
         if let Some(headers_ptr) = headers {
             self.add_headers(headers_ptr)?;
+        }
+
+        // Unsafe block to accept self-signed certs
+        unsafe {
+            let flags: u32 = WinHttp::SECURITY_FLAG_IGNORE_UNKNOWN_CA
+                | WinHttp::SECURITY_FLAG_IGNORE_CERT_CN_INVALID
+                | WinHttp::SECURITY_FLAG_IGNORE_CERT_DATE_INVALID;
+
+            // Convert `flags` into a byte slice for WinHttpSetOption
+            let flags_bytes: &[u8] = std::slice::from_raw_parts(
+                &flags as *const u32 as *const u8,
+                std::mem::size_of::<u32>(),
+            );
+
+            WinHttpSetOption(
+                Some(self.handle.ok_or_else().unwrap()),
+                WinHttp::WINHTTP_OPTION_SECURITY_FLAGS,
+                Some(flags_bytes),
+            )?;
         }
 
         unsafe {
