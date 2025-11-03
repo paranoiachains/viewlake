@@ -255,11 +255,15 @@ mod tests {
         request.receive().unwrap();
 
         let mut buf = [0u8; 4096];
-        request
+        let bytes_read = request
             .read(buf.as_mut_ptr() as *mut _, buf.len() as u32)
             .unwrap();
+        let buf = &buf[..bytes_read as usize];
 
-        println!("Response buffer: {:?}", buf);
+        println!(
+            "Response buffer: {:?}",
+            std::str::from_utf8(buf).unwrap_or("Invalid UTF-8")
+        );
         assert!(!buf.is_empty());
     }
 
@@ -273,8 +277,16 @@ mod tests {
         request.send(Some(headers_vec), None).unwrap();
         request.receive().unwrap();
 
-        let buf = [0u8; 4096];
-        println!("Response buffer: {:?}", buf);
+        let mut buf = [0u8; 4096];
+        let bytes_read = request
+            .read(buf.as_mut_ptr() as *mut _, buf.len() as u32)
+            .unwrap();
+        let buf = &buf[..bytes_read as usize];
+
+        println!(
+            "Response buffer: {:?}",
+            std::str::from_utf8(buf).unwrap_or("Invalid UTF-8")
+        );
         assert!(!buf.is_empty())
     }
 
@@ -290,11 +302,15 @@ mod tests {
         request.receive().unwrap();
 
         let mut buf = [0u8; 4096];
-        request
+        let bytes_read = request
             .read(buf.as_mut_ptr() as *mut _, buf.len() as u32)
             .unwrap();
+        let slice = &buf[..bytes_read as usize];
 
-        println!("Response buffer: {:?}", buf);
+        println!(
+            "Response buffer: {:?}",
+            std::str::from_utf8(slice).unwrap_or("Invalid UTF-8")
+        );
         assert!(!buf.is_empty())
     }
 }
