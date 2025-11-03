@@ -16,8 +16,7 @@ pub struct Client {
 
 const DEFAULT_AGENT: &'static str = "SomeAgent"; // TODO: randomize user-agent
 
-/// Abstraction over WinHttpRequest. Implements: 'read' method (Reads response and outputs vector
-/// of bytes) and 'receive' (Response must be initially received before read)
+/// Abstraction over WinHttpRequest.
 pub struct RequestHandle(pub WinHttpRequest);
 
 impl RequestHandle {
@@ -70,7 +69,7 @@ impl Client {
         })
     }
 
-    /// Sends request and returns RequestHandle, which is supposed to be passed to receive
+    /// Sends request and returns `Response` struct.
     pub fn send_and_read(
         &mut self,
         hostname: &str,

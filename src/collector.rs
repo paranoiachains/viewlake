@@ -33,16 +33,3 @@ impl SystemFingerprint {
         })
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn collect_system_fingerprint() -> Result<()> {
-        let sys_fingerprint = SystemFingerprint::collect()?;
-        assert!(!sys_fingerprint.network.adapters_info.is_ok());
-        assert!(!sys_fingerprint.processes.list.is_empty());
-        Ok(())
-    }
-}

@@ -1,10 +1,10 @@
-mod client;
+pub mod client;
 use crate::comms::client::*;
-use std::collections::HashMap;
 use windows::core::Result;
 
 pub struct Communicator {
     client: Client,
+    id: u32,
 }
 
 impl Communicator {
