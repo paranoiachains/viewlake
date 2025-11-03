@@ -259,6 +259,7 @@ mod tests {
             .read(buf.as_mut_ptr() as *mut _, buf.len() as u32)
             .unwrap();
 
+        println!("Response buffer: {:?}", buf);
         assert!(!buf.is_empty());
     }
 
@@ -273,6 +274,7 @@ mod tests {
         request.receive().unwrap();
 
         let buf = [0u8; 4096];
+        println!("Response buffer: {:?}", buf);
         assert!(!buf.is_empty())
     }
 
@@ -292,6 +294,7 @@ mod tests {
             .read(buf.as_mut_ptr() as *mut _, buf.len() as u32)
             .unwrap();
 
+        println!("Response buffer: {:?}", buf);
         assert!(!buf.is_empty())
     }
 }
