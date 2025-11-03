@@ -14,10 +14,10 @@ pub struct Client {
 
 const DEFAULT_AGENT: &'static str = "SomeAgent"; // TODO: randomize user-agent
 
-pub struct RequestHandle(WinHttpRequest);
+pub struct RequestHandle(pub WinHttpRequest);
 
 impl RequestHandle {
-    pub fn read(&self) -> Result<Vec<u8>> {
+    pub fn read(&self) -> Result<Option<Vec<u8>>> {
         let mut body = Vec::new();
         let mut buf = [0u8; 4096];
 
@@ -33,7 +33,11 @@ impl RequestHandle {
             body.extend_from_slice(&buf[..bytes_read as usize]);
         }
 
-        Ok(body)
+        if body.is_empty() {
+            Ok(None)
+        } else {
+            Ok(Some(body))
+        }
     }
 
     fn receive(&self) -> Result<()> {
@@ -75,13 +79,8 @@ impl Client {
     }
 
     /// Receives response using provided RequestHandle obtained from send_request func
-    pub fn receive(&self, handle: &RequestHandle) -> Result<String> {
-        handle.receive()?;
-
-        let response = handle.read()?;
-        println!("Response: {:?}", response);
-
-        Ok(String::from_utf8_lossy(&response).into_owned())
+    pub fn receive(&self, handle: &RequestHandle) -> Result<()> {
+        handle.receive()
     }
 }
 
@@ -109,10 +108,9 @@ mod tests {
             .receive(&request)
             .expect("Failed to receive response");
 
-        println!("Response text: {}", response_text);
-        assert!(!response_text.is_empty(), "Response body is empty");
+        assert!(!response_text.is_some(), "Response body is empty");
         assert!(
-            response_text.contains("Example Domain"),
+            response_text.unwrap().contains("Example Domain"),
             "Unexpected response content"
         );
     }
@@ -129,8 +127,7 @@ mod tests {
             .receive(&request)
             .expect("Failed to receive response");
 
-        println!("Response text: {}", response_text);
-        assert!(!response_text.is_empty(), "Response body is empty");
+        assert!(!response_text.is_some(), "Response body is empty");
     }
 
     #[test]
@@ -146,7 +143,6 @@ mod tests {
             .receive(&request)
             .expect("Failed to receive response");
 
-        println!("Response text: {}", response_text);
-        assert!(!response_text.is_empty(), "Response body is empty");
+        assert!(!response_text.is_some(), "Response body is empty");
     }
 }

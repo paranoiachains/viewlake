@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 /// Low-level API for WinHTTP
 use std::os::raw::c_void;
 use widestring::Utf16String;
@@ -217,6 +218,60 @@ impl WinHttpRequest {
 
             Ok(bytes_read)
         }
+    }
+
+    pub fn status_code(&self) -> Result<u32> {
+        unsafe {
+            let mut code: u32 = 0;
+            let mut length = std::mem::size_of::<u32>() as u32;
+
+            WinHttp::WinHttpQueryHeaders(
+                self.handle.ok_or_else()?,
+                WinHttp::WINHTTP_QUERY_STATUS_CODE | WinHttp::WINHTTP_QUERY_FLAG_NUMBER,
+                PCWSTR::null(),
+                Some(&mut code as *mut u32 as *mut _),
+                &mut length,
+                std::ptr::null_mut(),
+            )?;
+
+            Ok(code)
+        }
+    }
+
+    pub fn headers(&self) -> Result<HashMap<String, String>> {
+        let mut headers = HashMap::new();
+
+        unsafe {
+            let mut size: u32 = 0;
+            WinHttp::WinHttpQueryHeaders(
+                self.handle.ok_or_else()?,
+                WinHttp::WINHTTP_QUERY_RAW_HEADERS,
+                PCWSTR::null(),
+                None,
+                &mut size,
+                std::ptr::null_mut(),
+            )
+            .ok(); // ignore error for size
+
+            let mut buffer: Vec<u16> = vec![0; size as usize];
+            WinHttp::WinHttpQueryHeaders(
+                self.handle.ok_or_else()?,
+                WinHttp::WINHTTP_QUERY_RAW_HEADERS,
+                PCWSTR::null(),
+                Some(buffer.as_mut_ptr() as *mut _),
+                &mut size,
+                std::ptr::null_mut(),
+            )?;
+
+            let raw_headers = String::from_utf16_lossy(&buffer);
+            for line in raw_headers.lines() {
+                if let Some((k, v)) = line.split_once(':') {
+                    headers.insert(k.trim().to_string(), v.trim().to_string());
+                }
+            }
+        }
+
+        Ok(headers)
     }
 }
 
