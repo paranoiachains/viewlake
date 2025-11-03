@@ -47,7 +47,7 @@ impl RequestHandle {
         self.0.receive()
     }
 
-    fn send(&self, headers: Option<Vec<&str>>, body: Option<&str>) -> Result<()> {
+    fn send(&self, headers: Option<HashMap<String, String>>, body: Option<&str>) -> Result<()> {
         self.0.send(headers, body)
     }
 
@@ -76,7 +76,7 @@ impl Client {
         port: u16,
         method: &str,
         path: &str,
-        headers: Option<Vec<&str>>,
+        headers: Option<HashMap<String, String>>,
         body: Option<&str>,
     ) -> Result<Response> {
         if self
@@ -105,7 +105,7 @@ pub struct Request<'a> {
     pub port: u16,
     pub method: &'a str,
     pub path: &'a str,
-    pub headers: Option<Vec<&'a str>>,
+    pub headers: Option<HashMap<String, String>>,
     pub body: Option<&'a str>,
 }
 
@@ -115,7 +115,7 @@ impl<'a> Request<'a> {
         port: u16,
         method: &'a str,
         path: &'a str,
-        headers: Option<Vec<&'a str>>,
+        headers: Option<HashMap<String, String>>,
         body: Option<&'a str>,
     ) -> Self {
         Request {

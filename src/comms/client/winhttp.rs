@@ -146,7 +146,7 @@ impl WinHttpRequest {
     /// Sends HTTP request with given headers and body
     pub fn send(
         &self,
-        headers: Option<Vec<&str>>,
+        headers: Option<HashMap<String, String>>,
         body: Option<&str>, // pointer + length of body
     ) -> Result<()> {
         let body_bytes_opt = body.as_ref().map(|b| b.as_bytes());
@@ -176,11 +176,12 @@ impl WinHttpRequest {
     }
 
     /// Helper function to add headers to request
-    fn add_headers(&self, headers: Vec<&str>) -> Result<()> {
+    fn add_headers(&self, headers: HashMap<String, String>) -> Result<()> {
         let mut combined: Vec<u16> = Vec::new();
 
-        for (i, header) in headers.iter().enumerate() {
-            combined.extend(header.encode_utf16());
+        for (i, (key, value)) in headers.iter().enumerate() {
+            let header_line = format!("{}: {}", key, value);
+            combined.extend(header_line.encode_utf16());
 
             if i != headers.len() - 1 {
                 combined.push(b'\r' as u16);
@@ -328,8 +329,9 @@ mod tests {
         let connection = WinHttpConnection::new(&session, "www.example.com", 443).unwrap();
         let request = WinHttpRequest::new(&connection, "GET", "/").unwrap();
 
-        let headers_vec: Vec<&str> = vec!["Header: 1"];
-        request.send(Some(headers_vec), None).unwrap();
+        let mut headers: HashMap<String, String> = HashMap::new();
+        headers.insert("X-Hello".to_string(), "hi".to_string());
+        request.send(Some(headers), None).unwrap();
         request.receive().unwrap();
 
         let mut buf = [0u8; 4096];
