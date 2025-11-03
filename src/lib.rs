@@ -27,7 +27,10 @@ pub fn hello() -> Result<()> {
     }
 
     println!("Response code [main func]: {}", response.code);
-    println!("Response [main func]: {:?}", response.body);
+    println!(
+        "Response [main func]: {}",
+        response.body.unwrap_or("Empty response body".to_string())
+    );
 
     Ok(())
 }
