@@ -84,3 +84,69 @@ impl Client {
         Ok(String::from_utf8_lossy(&response).into_owned())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    const TEST_HOST: &str = "www.example.com";
+    const TEST_PORT: u16 = 443;
+    const TEST_PATH: &str = "/";
+
+    #[test]
+    fn client_creation() {
+        assert!(Client::new().is_ok())
+    }
+
+    #[test]
+    fn send_get_request() {
+        let mut client = Client::new().unwrap();
+        let request = client
+            .send(TEST_HOST, TEST_PORT, "GET", TEST_PATH, None, None)
+            .expect("Failed to send GET request");
+
+        let response_text = client
+            .receive(&request)
+            .expect("Failed to receive response");
+
+        println!("Response text: {}", response_text);
+        assert!(!response_text.is_empty(), "Response body is empty");
+        assert!(
+            response_text.contains("Example Domain"),
+            "Unexpected response content"
+        );
+    }
+
+    #[test]
+    fn send_request_with_headers() {
+        let mut client = Client::new().unwrap();
+        let headers = vec!["User-Agent: RustTestClient"];
+        let request = client
+            .send(TEST_HOST, TEST_PORT, "GET", TEST_PATH, Some(headers), None)
+            .expect("Failed to send GET request with headers");
+
+        let response_text = client
+            .receive(&request)
+            .expect("Failed to receive response");
+
+        println!("Response text: {}", response_text);
+        assert!(!response_text.is_empty(), "Response body is empty");
+    }
+
+    #[test]
+    fn send_post_request_with_body() {
+        let mut client = Client::new().unwrap();
+        let body = "Test body content";
+
+        let request = client
+            .send(TEST_HOST, TEST_PORT, "POST", TEST_PATH, None, Some(body))
+            .expect("Failed to send POST request");
+
+        let response_text = client
+            .receive(&request)
+            .expect("Failed to receive response");
+
+        println!("Response text: {}", response_text);
+        assert!(!response_text.is_empty(), "Response body is empty");
+    }
+}
