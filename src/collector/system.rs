@@ -30,6 +30,7 @@ impl SystemInfo {
     fn os() -> Result<(String, String)> {
         unsafe {
             let mut os_version: OSVERSIONINFOEXW = std::mem::zeroed();
+            os_version.dwOSVersionInfoSize = std::mem::size_of::<OSVERSIONINFOEXW>() as u32;
             let ntstatus = RtlGetVersion(&mut os_version as *mut _ as *mut OSVERSIONINFOW);
 
             if ntstatus == STATUS_SUCCESS {
