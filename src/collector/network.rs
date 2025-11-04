@@ -1,3 +1,4 @@
+use windows::Win32::NetworkManagement::IpHelper::GAA_FLAG_INCLUDE_GATEWAYS;
 use windows::Win32::NetworkManagement::IpHelper::GAA_FLAG_INCLUDE_PREFIX;
 use windows::Win32::NetworkManagement::IpHelper::GetAdaptersAddresses;
 use windows::Win32::NetworkManagement::IpHelper::IP_ADAPTER_ADDRESSES_LH;
@@ -12,7 +13,7 @@ pub struct NetworkInfo {
     pub hostname: Result<String, Error>,
     pub domain_or_workgroup: String,
     pub status: String,
-    pub adapters_info: Result<Vec<Adapter>, Error>,
+    pub adapters: Result<Vec<Adapter>, Error>,
 }
 
 pub struct Adapter {
@@ -45,7 +46,7 @@ impl NetworkInfo {
             hostname: Self::hostname(),
             domain_or_workgroup,
             status,
-            adapters_info: Self::adapters_info(),
+            adapters: Self::adapters_info(),
         })
     }
     fn hostname() -> Result<String, Error> {
@@ -120,7 +121,7 @@ impl NetworkInfo {
 
             let ret = GetAdaptersAddresses(
                 AF_UNSPEC.0 as u32,
-                GAA_FLAG_INCLUDE_PREFIX,
+                GAA_FLAG_INCLUDE_PREFIX | GAA_FLAG_INCLUDE_GATEWAYS,
                 None,
                 Some(adapter_addresess),
                 &mut size as *mut _,
@@ -246,7 +247,7 @@ mod tests {
             info.status
         );
 
-        let adapters = info.adapters_info.as_ref().expect("adapters_info failed");
+        let adapters = info.adapters.as_ref().expect("adapters_info failed");
         assert!(!adapters.is_empty(), "No network adapters found");
 
         for adapter in adapters {
