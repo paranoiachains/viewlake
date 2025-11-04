@@ -149,7 +149,7 @@ mod tests {
     fn get_user_info() -> Result<()> {
         let info = UserInfo::collect()?;
         println!("Username: {}", info.username.as_ref().unwrap());
-        assert!(!info.username.is_some(), "Username should not be empty");
+        assert!(info.username.is_some(), "Username should not be empty");
 
         assert!(info.groups.is_some(), "Groups should not be None");
         assert!(
