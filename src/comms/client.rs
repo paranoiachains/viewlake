@@ -20,6 +20,7 @@ const DEFAULT_AGENT: &'static str = "SomeAgent"; // TODO: randomize user-agent
 pub struct RequestHandle(pub WinHttpRequest);
 
 impl RequestHandle {
+    /// Returns response as Vec<u8>
     fn read(&self) -> Result<Option<Vec<u8>>> {
         let mut body = Vec::new();
         let mut buf = [0u8; 4096];
@@ -43,24 +44,29 @@ impl RequestHandle {
         }
     }
 
+    /// Receives response (call of WinHttpReceiveResponse)
     fn receive(&self) -> Result<()> {
         self.0.receive()
     }
 
+    /// Sends request using given headers and body
     fn send(&self, headers: Option<HashMap<String, String>>, body: Option<&str>) -> Result<()> {
         self.0.send(headers, body)
     }
 
+    /// Returns response's status code
     fn status_code(&self) -> Result<u32> {
         self.0.status_code()
     }
 
+    /// Returns response's headers
     fn headers(&self) -> Result<HashMap<String, String>> {
         self.0.headers()
     }
 }
 
 impl Client {
+    /// Initializes WinHttpSession
     pub fn new() -> Result<Self> {
         let session = WinHttpSession::new(DEFAULT_AGENT)?;
         Ok(Client {

@@ -28,6 +28,7 @@ impl Communicator {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::collections::HashMap;
 
     const TEST_HOST: &str = "www.example.com";
     const TEST_PORT: u16 = 443;
@@ -65,8 +66,8 @@ mod tests {
     #[test]
     fn request_with_headers() {
         let mut comm = Communicator::new().unwrap();
-        let headers: HashMap<String, String> = HashMap::new();
-        headers.insert("X-Random", "123");
+        let mut headers: HashMap<String, String> = HashMap::new();
+        headers.insert("X-Random".to_string(), "123".to_string());
         let request = Request::new(TEST_HOST, TEST_PORT, "GET", TEST_PATH, Some(headers), None);
         let response = comm.request(request).unwrap();
 
