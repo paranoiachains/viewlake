@@ -33,12 +33,5 @@ pub fn hello() -> Result<()> {
 
     let response = comm.request(request)?;
 
-    println!("Username: {}", username);
-    println!("Response code [main func]: {}", response.code);
-    println!(
-        "Response [main func]: {}",
-        response.body.unwrap_or("Empty response body".to_string())
-    );
-
     Ok(())
 }
