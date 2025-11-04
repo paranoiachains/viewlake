@@ -103,8 +103,12 @@ mod tests {
             ProcessList::collect().expect("ProcessList::collect() should not return Err");
 
         assert!(
-            processes.list.is_empty(),
+            !processes.list.is_empty(),
             "There should be at least one process"
+        );
+        println!(
+            "Processes: PID {} -> {}",
+            processes.list[0].pid, processes.list[0].name
         );
     }
 }
