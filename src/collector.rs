@@ -50,7 +50,7 @@ mod tests {
         let fingerprint = result.unwrap();
 
         assert!(
-            fingerprint.network.adapters_info.is_ok(),
+            fingerprint.network.adapters.is_ok(),
             "fingerprint.network.adapters_info shouldn't be Err"
         );
 
