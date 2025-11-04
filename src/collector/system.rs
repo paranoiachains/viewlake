@@ -89,12 +89,14 @@ mod tests {
             "Unexpected architecture: {}",
             os_info.arch
         );
+        println!("Architecture: {:?}", os_info.arch);
 
         assert!(
             !os_info.version.is_empty(),
             "OS version shouldn't be empty: {}",
             os_info.version
         );
+        println!("OS Version: {:?}", os_info.version);
 
         assert!(
             os_info.product_type == "Workstation"
@@ -104,5 +106,6 @@ mod tests {
             "Unexpected product type: {}",
             os_info.product_type
         );
+        println!("Product type: {}", os_info.product_type);
     }
 }
