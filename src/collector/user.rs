@@ -1,35 +1,37 @@
 use windows::Win32::Foundation::*;
 use windows::Win32::Security::*;
 use windows::Win32::System::Threading::{GetCurrentProcess, OpenProcessToken};
-use windows::core::Error;
+use windows::core::Result;
 use windows::{Win32::System::WindowsProgramming::GetUserNameW, core::PWSTR};
 
 pub struct UserInfo {
-    pub username: Result<String, Error>,
-    pub groups: Result<Vec<String>, Error>,
-    pub privileges: Result<Vec<String>, Error>,
+    pub username: Option<String>,
+    pub groups: Option<Vec<String>>,
+    pub privileges: Option<Vec<String>>,
 }
 
 impl UserInfo {
-    pub fn collect() -> Self {
-        UserInfo {
-            username: Self::get_username(),
-            groups: Self::get_user_groups(),
-            privileges: Self::get_user_privileges(),
-        }
+    pub fn collect() -> Result<Self> {
+        Ok(UserInfo {
+            username: Self::get_username()?,
+            groups: Self::get_user_groups()?,
+            privileges: Self::get_user_privileges()?,
+        })
     }
 
-    fn get_username() -> Result<String, Error> {
+    fn get_username() -> Result<Option<String>> {
         let mut buffer: [u16; 256] = [0; 256];
         #[allow(unused_mut)]
         let mut size = buffer.len() as u32;
         unsafe {
             GetUserNameW(PWSTR::from_raw(buffer.as_mut_ptr()), &mut size)?;
-            Ok(String::from_utf16_lossy(&buffer[..(size - 1) as usize]))
+            Ok(Some(String::from_utf16_lossy(
+                &buffer[..(size - 1) as usize],
+            )))
         }
     }
 
-    fn get_user_groups() -> Result<Vec<String>, Error> {
+    fn get_user_groups() -> Result<Option<Vec<String>>> {
         unsafe {
             let mut token_handle: HANDLE = HANDLE::default();
             let handle = GetCurrentProcess();
@@ -84,11 +86,11 @@ impl UserInfo {
                 }
             }
 
-            Ok(groups)
+            Ok(Some(groups))
         }
     }
 
-    fn get_user_privileges() -> Result<Vec<String>, Error> {
+    fn get_user_privileges() -> Result<Option<Vec<String>>> {
         unsafe {
             let mut token_handle: HANDLE = HANDLE::default();
             let handle = GetCurrentProcess();
@@ -134,7 +136,7 @@ impl UserInfo {
                 ));
             }
 
-            Ok(privileges)
+            Ok(Some(privileges))
         }
     }
 }
@@ -144,28 +146,25 @@ mod tests {
     use super::*;
 
     #[test]
-    fn get_user_info() {
-        let info = UserInfo::collect();
+    fn get_user_info() -> Result<()> {
+        let info = UserInfo::collect()?;
+        println!("Username: {}", info.username.as_ref().unwrap());
+        assert!(!info.username.is_some(), "Username should not be empty");
 
-        assert!(info.username.is_ok(), "Username should not be Err");
+        assert!(info.groups.is_some(), "Groups should not be None");
         assert!(
-            !info.username.unwrap().is_empty(),
-            "Username should not be empty"
-        );
-        println!("Username: {}", info.username.unwrap());
-
-        assert!(info.groups.is_ok(), "Groups should not be Err");
-        assert!(
-            !info.groups.unwrap().is_empty(),
+            !info.groups.as_ref().unwrap().is_empty(),
             "Groups should not be empty"
         );
         println!("Groups: {:?}", info.groups.unwrap());
 
-        assert!(info.privileges.is_ok(), "Privileges should not be Err");
+        assert!(info.privileges.is_some(), "Privileges should not be None");
         assert!(
-            info.privileges.unwrap().is_empty(),
+            info.privileges.as_ref().unwrap().is_empty(),
             "Privileges should not be empty"
         );
         println!("Privileges: {:?}", info.privileges.unwrap());
+
+        Ok(())
     }
 }

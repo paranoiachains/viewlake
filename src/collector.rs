@@ -24,7 +24,7 @@ impl SystemFingerprint {
         let network = NetworkInfo::collect()?;
         let processes = ProcessList::collect()?;
         let system = SystemInfo::collect()?;
-        let user = UserInfo::collect();
+        let user = UserInfo::collect()?;
 
         Ok(Self {
             network,
@@ -70,8 +70,8 @@ mod tests {
         );
 
         assert!(
-            fingerprint.user.username.is_ok(),
-            "Username shouldn't be Err"
+            fingerprint.user.username.is_some(),
+            "Username shouldn't be None"
         );
     }
 }

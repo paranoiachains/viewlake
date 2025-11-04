@@ -102,9 +102,8 @@ mod tests {
         let processes =
             ProcessList::collect().expect("ProcessList::collect() should not return Err");
 
-        let proc_list = processes.unwrap();
         assert!(
-            proc_list.list.is_empty(),
+            processes.list.is_empty(),
             "There should be at least one process"
         );
     }
