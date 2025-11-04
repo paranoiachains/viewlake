@@ -160,7 +160,7 @@ mod tests {
 
         assert!(info.privileges.is_some(), "Privileges should not be None");
         assert!(
-            info.privileges.as_ref().unwrap().is_empty(),
+            !info.privileges.as_ref().unwrap().is_empty(),
             "Privileges should not be empty"
         );
         println!("Privileges: {:?}", info.privileges.unwrap());
