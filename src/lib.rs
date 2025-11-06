@@ -23,11 +23,7 @@ pub fn hello() -> Result<()> {
     let mut headers: HashMap<String, String> = HashMap::new();
     headers.insert("Content-Type".to_string(), "text/plain".to_string());
 
-    let username = fingerprint
-        .user
-        .username
-        .unwrap_or("Unknown username".to_string());
-    let body = username.as_str();
+    let body = comm.id.as_str();
 
     let request = Request::new(hostname, port, "POST", "/hi", Some(headers), Some(body));
 

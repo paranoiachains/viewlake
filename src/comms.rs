@@ -1,20 +1,26 @@
 pub mod client;
 use crate::comms::client::*;
+use std::time::{SystemTime, UNIX_EPOCH};
 use windows::core::Result;
 
 pub struct Communicator {
     client: Client,
+    pub id: u32,
 }
 
 impl Communicator {
     pub fn new() -> Result<Self> {
         let client = Client::new()?;
-        Ok(Self { client })
+        let id = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .subsec_nanos();
+        Ok(Self { client, id })
     }
 
     /// Send request and receive response
     pub fn request(&mut self, request: Request) -> Result<Response> {
-        self.client.send_and_read(
+        self.client.request(
             request.hostname,
             request.port,
             request.method,

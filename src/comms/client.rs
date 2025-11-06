@@ -26,7 +26,7 @@ impl Client {
     }
 
     /// Sends request and returns `Response` struct.
-    pub fn send_and_read(
+    pub fn request(
         &mut self,
         hostname: &str,
         port: u16,
@@ -56,6 +56,14 @@ impl Client {
         let headers = request_handle.headers()?;
 
         Ok(Response::new(status_code, headers, body))
+    }
+
+    pub fn home(&self) -> Option<&str> {
+        if let Some(ref conn) = self.connection {
+            Some(&conn.hostname)
+        } else {
+            None
+        }
     }
 }
 
