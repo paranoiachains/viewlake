@@ -234,6 +234,7 @@ mod tests {
 
         let hostname = info.hostname.as_ref().expect("hostname error");
         assert!(!hostname.is_empty(), "Hostname is empty");
+        println!("Hostname: {hostname}");
 
         let valid_statuses = [
             "Unjoined",
@@ -246,6 +247,8 @@ mod tests {
             "Unexpected status: {}",
             info.status
         );
+        println!("Host's status: {}", info.status);
+        println!("Domain or workgroup: {}", info.domain_or_workgroup);
 
         let adapters = info.adapters.as_ref().expect("adapters_info failed");
         assert!(!adapters.is_empty(), "No network adapters found");
