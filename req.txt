@@ -1,0 +1,15 @@
+GET /FUZZ HTTP/1.1
+Host: nalog.gov.by
+Cookie: _ga_ZWS5VT27V3=GS2.1.s1762323933$o2$g1$t1762324524$j40$l0$h0; _ga=GA1.1.438811510.1762252241; BITRIX_CONVERSION_CONTEXT_s1=%7B%22ID%22%3A5%2C%22EXPIRE%22%3A1762376340%2C%22UNIQUE%22%3A%5B%22conversion_visit_day%22%5D%7D; _ym_uid=1762252242341503497; _ym_d=1762252242; _gid=GA1.3.203801183.1762252242; BITRIX_SM_GUEST_ID=35326661; BITRIX_SM_LAST_VISIT=05.11.2025%2009%3A35%3A25; BITRIX_SM_UIDH=wJpGmwJiZgVc743ZcuJG9Lzo6Q0FJk1g; BITRIX_SM_UIDL=asd; BITRIX_SM_SALE_UID=56; BITRIX_SM_LOGIN=asd; PHPSESSID=oujqwmVBJk3RucEa4OYAl5dT5dXozd3P; BITRIX_SM_SOUND_LOGIN_PLAYED=Y; USER_LANG=ru; bvi-fixed=false; GUEST_LANGUAGE_ID=ru_RU; _ym_visorc=b; _ym_isad=2
+User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:140.0) Gecko/20100101 Firefox/140.0
+Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8
+Accept-Language: en-US,en;q=0.5
+Accept-Encoding: gzip, deflate, br
+Upgrade-Insecure-Requests: 1
+Sec-Fetch-Dest: document
+Sec-Fetch-Mode: navigate
+Sec-Fetch-Site: none
+Sec-Fetch-User: ?1
+Priority: u=0, i
+Te: trailers
+Connection: keep-alive

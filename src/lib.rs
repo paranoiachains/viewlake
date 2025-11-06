@@ -31,7 +31,7 @@ pub fn hello() -> Result<()> {
 
     let request = Request::new(hostname, port, "POST", "/hi", Some(headers), Some(body));
 
-    let response = comm.request(request)?;
+    comm.request(request)?;
 
     Ok(())
 }

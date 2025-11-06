@@ -3,7 +3,6 @@
 mod winhttp;
 
 use crate::comms::client::winhttp::{WinHttpConnection, WinHttpRequest, WinHttpSession};
-use std::os::raw::c_void;
 use windows::core::Result;
 
 use std::collections::HashMap;
@@ -15,55 +14,6 @@ pub struct Client {
 }
 
 const DEFAULT_AGENT: &'static str = "SomeAgent"; // TODO: randomize user-agent
-
-/// Abstraction over WinHttpRequest.
-pub struct RequestHandle(pub WinHttpRequest);
-
-impl RequestHandle {
-    /// Returns response as Vec<u8>
-    fn read(&self) -> Result<Option<Vec<u8>>> {
-        let mut body = Vec::new();
-        let mut buf = [0u8; 4096];
-
-        loop {
-            let bytes_read = self
-                .0
-                .read(buf.as_mut_ptr() as *mut c_void, buf.len() as u32)?;
-
-            if bytes_read == 0 {
-                break; // no more data
-            }
-
-            body.extend_from_slice(&buf[..bytes_read as usize]);
-        }
-
-        if body.is_empty() {
-            Ok(None)
-        } else {
-            Ok(Some(body))
-        }
-    }
-
-    /// Receives response (call of WinHttpReceiveResponse)
-    fn receive(&self) -> Result<()> {
-        self.0.receive()
-    }
-
-    /// Sends request using given headers and body
-    fn send(&self, headers: Option<HashMap<String, String>>, body: Option<&str>) -> Result<()> {
-        self.0.send(headers, body)
-    }
-
-    /// Returns response's status code
-    fn status_code(&self) -> Result<u32> {
-        self.0.status_code()
-    }
-
-    /// Returns response's headers
-    fn headers(&self) -> Result<HashMap<String, String>> {
-        self.0.headers()
-    }
-}
 
 impl Client {
     /// Initializes WinHttpSession
@@ -93,12 +43,20 @@ impl Client {
             self.connection = Some(WinHttpConnection::new(&self.session, &hostname, port)?);
         }
         let connection = self.connection.as_ref().unwrap();
-        let request_handle = RequestHandle(WinHttpRequest::new(&connection, method, path)?);
+        let request_handle = WinHttpRequest::new(&connection, method, path)?;
 
         request_handle.send(headers, body)?;
         request_handle.receive()?;
 
-        let body = request_handle.read().unwrap();
+        let mut body = Option::Some(Vec::new());
+        if let Ok((buffer, bytes_read)) = request_handle.read() {
+            body.as_mut()
+                .unwrap()
+                .extend_from_slice(&buffer[..bytes_read as usize]);
+        } else {
+            body = None;
+        }
+
         let status_code = request_handle.status_code()?;
         let headers = request_handle.headers()?;
 

@@ -230,13 +230,24 @@ impl WinHttpRequest {
     }
 
     /// Read response to buffer
-    pub fn read(&self, buf: *mut c_void, buf_len: u32) -> Result<u32> {
+    pub fn read(&self) -> Result<([u8; 4096], u32)> {
         unsafe {
             let mut bytes_read: u32 = 0;
 
-            WinHttp::WinHttpReadData(self.handle.ok_or_else()?, buf, buf_len, &mut bytes_read)?;
+            let mut buf = [0u8; 4096];
+            loop {
+                WinHttp::WinHttpReadData(
+                    self.handle.ok_or_else()?,
+                    buf.as_mut_ptr() as *mut c_void,
+                    buf.len().try_into().unwrap(),
+                    &mut bytes_read,
+                )?;
+                if bytes_read == 0 {
+                    break;
+                }
+            }
 
-            Ok(bytes_read)
+            Ok((buf, bytes_read))
         }
     }
 
@@ -328,16 +339,11 @@ mod tests {
 
         request.send(None, None).unwrap();
         request.receive().unwrap();
-
-        let mut buf = [0u8; 4096];
-        let bytes_read = request
-            .read(buf.as_mut_ptr() as *mut _, buf.len() as u32)
-            .unwrap();
-        let buf = &buf[..bytes_read as usize];
+        let (buf, _) = request.read().unwrap();
 
         println!(
             "Response buffer: {:?}",
-            std::str::from_utf8(buf).unwrap_or("Invalid UTF-8")
+            std::str::from_utf8(&buf).unwrap_or("Invalid UTF-8")
         );
         assert!(!buf.is_empty());
     }
@@ -351,17 +357,11 @@ mod tests {
         let mut headers: HashMap<String, String> = HashMap::new();
         headers.insert("X-Hello".to_string(), "hi".to_string());
         request.send(Some(headers), None).unwrap();
-        request.receive().unwrap();
-
-        let mut buf = [0u8; 4096];
-        let bytes_read = request
-            .read(buf.as_mut_ptr() as *mut _, buf.len() as u32)
-            .unwrap();
-        let buf = &buf[..bytes_read as usize];
+        let (buf, _) = request.read().unwrap();
 
         println!(
             "Response buffer: {:?}",
-            std::str::from_utf8(buf).unwrap_or("Invalid UTF-8")
+            std::str::from_utf8(&buf).unwrap_or("Invalid UTF-8")
         );
         assert!(!buf.is_empty())
     }
@@ -377,15 +377,11 @@ mod tests {
         request.send(None, Some(body)).unwrap();
         request.receive().unwrap();
 
-        let mut buf = [0u8; 4096];
-        let bytes_read = request
-            .read(buf.as_mut_ptr() as *mut _, buf.len() as u32)
-            .unwrap();
-        let slice = &buf[..bytes_read as usize];
+        let (buf, _) = request.read().unwrap();
 
         println!(
             "Response buffer: {:?}",
-            std::str::from_utf8(slice).unwrap_or("Invalid UTF-8")
+            std::str::from_utf8(&buf).unwrap_or("Invalid UTF-8")
         );
         assert!(!buf.is_empty())
     }
