@@ -359,6 +359,7 @@ mod tests {
         let mut headers: HashMap<String, String> = HashMap::new();
         headers.insert("X-Hello".to_string(), "hi".to_string());
         request.send(Some(headers), None).unwrap();
+        request.receive().unwrap();
         let buf = request.read().unwrap();
 
         println!(
