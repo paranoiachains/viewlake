@@ -1,3 +1,2 @@
-fn main() {
-    println!("Hello wordl!");
-}
+#[tokio::main]
+async fn main() {}
