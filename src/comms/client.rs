@@ -47,15 +47,10 @@ impl Client {
 
         request_handle.send(headers, body)?;
         request_handle.receive()?;
-
-        let mut body = Option::Some(Vec::new());
-        if let Ok((buffer, bytes_read)) = request_handle.read() {
-            body.as_mut()
-                .unwrap()
-                .extend_from_slice(&buffer[..bytes_read as usize]);
-        } else {
-            body = None;
-        }
+        let body = match request_handle.read() {
+            Ok(bytes) => Some(bytes),
+            Err(_) => None,
+        };
 
         let status_code = request_handle.status_code()?;
         let headers = request_handle.headers()?;

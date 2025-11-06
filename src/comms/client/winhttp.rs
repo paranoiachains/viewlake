@@ -230,10 +230,10 @@ impl WinHttpRequest {
     }
 
     /// Read response to buffer
-    pub fn read(&self) -> Result<([u8; 4096], u32)> {
+    pub fn read(&self) -> Result<Vec<u8>> {
         unsafe {
             let mut bytes_read: u32 = 0;
-
+            let mut result = Vec::new();
             let mut buf = [0u8; 4096];
             loop {
                 WinHttp::WinHttpReadData(
@@ -245,9 +245,11 @@ impl WinHttpRequest {
                 if bytes_read == 0 {
                     break;
                 }
+
+                result.extend_from_slice(&buf[..bytes_read as usize]);
             }
 
-            Ok((buf, bytes_read))
+            Ok(result)
         }
     }
 
@@ -339,7 +341,7 @@ mod tests {
 
         request.send(None, None).unwrap();
         request.receive().unwrap();
-        let (buf, _) = request.read().unwrap();
+        let buf = request.read().unwrap();
 
         println!(
             "Response buffer: {:?}",
@@ -357,7 +359,7 @@ mod tests {
         let mut headers: HashMap<String, String> = HashMap::new();
         headers.insert("X-Hello".to_string(), "hi".to_string());
         request.send(Some(headers), None).unwrap();
-        let (buf, _) = request.read().unwrap();
+        let buf = request.read().unwrap();
 
         println!(
             "Response buffer: {:?}",
@@ -377,7 +379,7 @@ mod tests {
         request.send(None, Some(body)).unwrap();
         request.receive().unwrap();
 
-        let (buf, _) = request.read().unwrap();
+        let buf = request.read().unwrap();
 
         println!(
             "Response buffer: {:?}",
