@@ -58,12 +58,12 @@ impl Client {
         Ok(Response::new(status_code, headers, body))
     }
 
+    /// Return home's hostname if present
     pub fn home(&self) -> Option<&str> {
         if let Some(ref conn) = self.connection {
-            Some(&conn.hostname)
-        } else {
-            None
+            return Some(&conn.hostname);
         }
+        None
     }
 }
 
