@@ -1,6 +1,6 @@
-use std::collections::HashMap;
 /// Low-level API for WinHTTP
-use std::os::raw::c_void;
+use core::ffi::c_void;
+use std::collections::HashMap;
 use widestring::Utf16String;
 use windows::Win32::Networking::WinHttp::{self, WinHttpSetOption};
 use windows::core::{Error, PCWSTR, Result};
