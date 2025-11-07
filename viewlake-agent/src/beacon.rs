@@ -1,14 +1,14 @@
 pub mod client;
-use crate::comms::client::*;
+use client::*;
 use std::time::{SystemTime, UNIX_EPOCH};
 use windows::core::Result;
 
-pub struct Communicator {
+pub struct Beacon {
     client: Client,
     pub id: u32,
 }
 
-impl Communicator {
+impl Beacon {
     pub fn new() -> Result<Self> {
         let client = Client::new()?;
         let id = SystemTime::now()
@@ -18,16 +18,12 @@ impl Communicator {
         Ok(Self { client, id })
     }
 
-    /// Send request and receive response
-    pub fn request(&mut self, request: Request) -> Result<Response> {
-        self.client.request(
-            request.hostname,
-            request.port,
-            request.method,
-            request.path,
-            request.headers,
-            request.body,
-        )
+    pub fn request(&mut self, request: &Request) -> Result<Response> {
+        self.client.request(request)
+    }
+
+    pub fn sleep(&mut self, dur: std::time::Duration) {
+        std::thread::sleep(dur);
     }
 }
 
@@ -43,17 +39,17 @@ mod tests {
     #[test]
     fn communicator_creation() {
         assert!(
-            Communicator::new().is_ok(),
+            Beacon::new().is_ok(),
             "Communicator creation should not return Err"
         )
     }
 
     #[test]
     fn get_request_basic() {
-        let mut comm = Communicator::new().unwrap();
+        let mut comm = Beacon::new().unwrap();
         let request = Request::new(TEST_HOST, TEST_PORT, "GET", TEST_PATH, None, None);
         let response = comm
-            .request(request)
+            .request(&request)
             .expect("Sending request threw an error");
 
         println!("Status code: {}", response.code);
@@ -71,11 +67,11 @@ mod tests {
 
     #[test]
     fn request_with_headers() {
-        let mut comm = Communicator::new().unwrap();
+        let mut comm = Beacon::new().unwrap();
         let mut headers: HashMap<String, String> = HashMap::new();
         headers.insert("X-Random".to_string(), "123".to_string());
-        let request = Request::new(TEST_HOST, TEST_PORT, "GET", TEST_PATH, Some(headers), None);
-        let response = comm.request(request).unwrap();
+        let request = Request::new(TEST_HOST, TEST_PORT, "GET", TEST_PATH, Some(&headers), None);
+        let response = comm.request(&request).unwrap();
 
         println!("Status code: {}", response.code);
         if let Some(body) = &response.body {
@@ -92,10 +88,10 @@ mod tests {
 
     #[test]
     fn request_with_body() {
-        let mut comm = Communicator::new().unwrap();
+        let mut comm = Beacon::new().unwrap();
         let body = "Hello!";
         let request = Request::new(TEST_HOST, TEST_PORT, "POST", TEST_PATH, None, Some(body));
-        let response = comm.request(request).unwrap();
+        let response = comm.request(&request).unwrap();
 
         println!("Status code: {}", response.code);
         if let Some(body) = &response.body {

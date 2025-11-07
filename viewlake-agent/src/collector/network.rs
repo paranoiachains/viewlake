@@ -9,13 +9,15 @@ use windows::core::Error;
 use windows::core::PCWSTR;
 use windows::core::PWSTR;
 
+#[derive(serde::Serialize)]
 pub struct NetworkInfo {
-    pub hostname: Result<String, Error>,
+    pub hostname: Option<String>,
     pub domain_or_workgroup: String,
     pub status: String,
-    pub adapters: Result<Vec<Adapter>, Error>,
+    pub adapters: Option<Vec<Adapter>>,
 }
 
+#[derive(serde::Serialize)]
 pub struct Adapter {
     pub friendly_name: String,
     pub description: String,
@@ -43,10 +45,10 @@ impl NetworkInfo {
     pub fn collect() -> Result<NetworkInfo, Error> {
         let (domain_or_workgroup, status) = Self::domain_or_workgroup()?;
         Ok(NetworkInfo {
-            hostname: Self::hostname(),
+            hostname: Some(Self::hostname()?),
             domain_or_workgroup,
             status,
-            adapters: Self::adapters_info(),
+            adapters: Some(Self::adapters_info()?),
         })
     }
     fn hostname() -> Result<String, Error> {

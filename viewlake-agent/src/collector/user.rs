@@ -4,6 +4,7 @@ use windows::Win32::System::Threading::{GetCurrentProcess, OpenProcessToken};
 use windows::core::Result;
 use windows::{Win32::System::WindowsProgramming::GetUserNameW, core::PWSTR};
 
+#[derive(serde::Serialize)]
 pub struct UserInfo {
     pub username: Option<String>,
     pub groups: Option<Vec<String>>,

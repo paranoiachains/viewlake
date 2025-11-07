@@ -4,6 +4,7 @@ use windows::Win32::System::SystemInformation::*;
 use windows::Win32::System::SystemServices::*;
 use windows::core::{Error, Result};
 
+#[derive(serde::Serialize)]
 pub struct SystemInfo {
     pub arch: String,
     pub product_type: String,

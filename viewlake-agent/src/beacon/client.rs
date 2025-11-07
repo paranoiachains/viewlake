@@ -2,8 +2,8 @@
 /// High level API for WinHTTP
 mod winhttp;
 
-use crate::comms::client::winhttp::{WinHttpConnection, WinHttpRequest, WinHttpSession};
 use windows::core::Result;
+use winhttp::{WinHttpConnection, WinHttpRequest, WinHttpSession};
 
 use std::collections::HashMap;
 
@@ -26,26 +26,22 @@ impl Client {
     }
 
     /// Sends request and returns `Response` struct.
-    pub fn request(
-        &mut self,
-        hostname: &str,
-        port: u16,
-        method: &str,
-        path: &str,
-        headers: Option<HashMap<String, String>>,
-        body: Option<&str>,
-    ) -> Result<Response> {
+    pub fn request(&mut self, request: &Request) -> Result<Response> {
         if self
             .connection
             .as_ref()
-            .map_or(true, |c| c.hostname != hostname)
+            .map_or(true, |c| c.hostname != request.hostname)
         {
-            self.connection = Some(WinHttpConnection::new(&self.session, &hostname, port)?);
+            self.connection = Some(WinHttpConnection::new(
+                &self.session,
+                &request.hostname,
+                request.port,
+            )?);
         }
         let connection = self.connection.as_ref().unwrap();
-        let request_handle = WinHttpRequest::new(&connection, method, path)?;
+        let request_handle = WinHttpRequest::new(&connection, request.method, request.path)?;
 
-        request_handle.send(headers, body)?;
+        request_handle.send(request.headers, request.body)?;
         request_handle.receive()?;
         let body = match request_handle.read() {
             Ok(bytes) => Some(bytes),
@@ -72,7 +68,7 @@ pub struct Request<'a> {
     pub port: u16,
     pub method: &'a str,
     pub path: &'a str,
-    pub headers: Option<HashMap<String, String>>,
+    pub headers: Option<&'a HashMap<String, String>>,
     pub body: Option<&'a str>,
 }
 
@@ -82,7 +78,7 @@ impl<'a> Request<'a> {
         port: u16,
         method: &'a str,
         path: &'a str,
-        headers: Option<HashMap<String, String>>,
+        headers: Option<&'a HashMap<String, String>>,
         body: Option<&'a str>,
     ) -> Self {
         Request {

@@ -12,6 +12,7 @@ mod user;
 
 /// Represents a complete fingerprint of the system.
 /// Collects network, processes, system info, and user info.
+#[derive(serde::Serialize)]
 pub struct SystemFingerprint {
     pub network: NetworkInfo,
     pub processes: ProcessList,
@@ -50,7 +51,7 @@ mod tests {
         let fingerprint = result.unwrap();
 
         assert!(
-            fingerprint.network.adapters.is_ok(),
+            fingerprint.network.adapters.is_some(),
             "fingerprint.network.adapters_info shouldn't be Err"
         );
 

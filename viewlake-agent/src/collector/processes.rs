@@ -6,10 +6,12 @@ use windows::Win32::System::ProcessStatus::{
 };
 use windows::Win32::System::Threading::*;
 
+#[derive(serde::Serialize)]
 pub struct ProcessList {
     pub list: Vec<Process>,
 }
 
+#[derive(serde::Serialize)]
 pub struct Process {
     pub pid: u32,
     pub name: String,
