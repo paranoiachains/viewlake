@@ -8,6 +8,11 @@ use beacon::client::Request;
 use collector::SystemFingerprint;
 use windows::core::Result;
 
+#[cfg(feature = "logging")]
+pub fn init_logging() {
+    simple_logger::init().unwrap();
+}
+
 pub fn hello() -> Result<()> {
     let data = SystemFingerprint::collect()?;
     let data_json = serde_json::to_string(&data).unwrap_or("Serialization error".to_string());
