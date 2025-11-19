@@ -28,12 +28,13 @@ pub fn hello() -> Result<()> {
         hostname,
         port,
         "POST",
-        "/hi",
+        "/hello",
         Some(&headers),
         Some(data_json.as_str()),
     );
 
-    comm.request(&request)?;
+    let response = comm.request(&request)?;
+    println!("{}", response.body.unwrap_or("No body".to_string()));
 
     Ok(())
 }
