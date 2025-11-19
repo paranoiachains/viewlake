@@ -1,22 +1,30 @@
-use axum::{Router, body::Bytes, http::StatusCode, routing::post};
+use poem::{
+    Body, Route, Server, handler,
+    listener::{Listener, RustlsCertificate, RustlsConfig, TcpListener},
+    post,
+};
 
-pub async fn run() -> Result<(), std::io::Error> {
-    let app = Router::new().route("/hi", post(hi));
+fn setup_rustls_config(cert: &str, key: &str) -> Result<RustlsConfig, std::io::Error> {
+    let cert_bytes = std::fs::read(cert)?;
+    let key_bytes = std::fs::read(key)?;
 
-    let listener = tokio::net::TcpListener::bind("127.0.0.1:3333")
-        .await
-        .expect("Failed to bind");
-
-    println!("Listening on 127.0.0.1:3333");
-
-    axum::serve(listener, app).await?;
-
-    Ok(())
+    Ok(RustlsConfig::new().fallback(RustlsCertificate::new().cert(cert_bytes).key(key_bytes)))
 }
 
-async fn hi(body: Bytes) -> StatusCode {
-    let body_str = String::from_utf8_lossy(&body);
-    println!("Received body: {}", body_str);
+pub async fn run(addr: &str, cert: &str, key: &str) -> Result<(), std::io::Error> {
+    let config = setup_rustls_config(cert, key)?;
+    let app = Route::new().at("/hello", post(hello));
+    Server::new(TcpListener::bind(addr).rustls(config))
+        .run(app)
+        .await
+}
 
-    StatusCode::OK
+#[handler]
+async fn hello(data: Body) -> String {
+    format!(
+        "hello! body: {:?}",
+        data.into_string()
+            .await
+            .unwrap_or("Couldn't read body".to_string())
+    )
 }
