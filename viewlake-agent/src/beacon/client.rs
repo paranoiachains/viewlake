@@ -2,15 +2,15 @@
 /// High level API for WinHTTP
 mod winhttp;
 
-use windows::core::Result;
+use windows::core::{Error, Result};
 use winhttp::{WinHttpConnection, WinHttpRequest, WinHttpSession};
-
-use std::collections::HashMap;
 
 /// Abstraction over WinHttpSession and WinHttpConnection
 pub struct Client {
     session: WinHttpSession,
-    connection: Option<WinHttpConnection>, // Store hostname with connection
+    connection: Option<(Box<str>, u16, WinHttpConnection)>, // Store hostname with connection
+    // (hostname, port, connection)
+    request: Option<WinHttpRequest>,
 }
 
 const DEFAULT_AGENT: &'static str = "SomeAgent"; // TODO: randomize user-agent
@@ -22,44 +22,56 @@ impl Client {
         Ok(Client {
             session,
             connection: None,
+            request: None,
         })
     }
 
-    /// Sends request and returns `Response` struct.
-    pub fn request(&mut self, request: &Request) -> Result<Response> {
-        if self
+    /// Sends request.
+    pub fn request(&mut self, req: &Request) -> Result<()> {
+        let reuse = self
             .connection
             .as_ref()
-            .map_or(true, |c| c.hostname != request.hostname)
-        {
-            self.connection = Some(WinHttpConnection::new(
-                &self.session,
-                &request.hostname,
-                request.port,
-            )?);
+            .map(|(host, port, _)| host.as_ref() == req.hostname && *port == req.port)
+            .unwrap_or(false);
+
+        if !reuse {
+            let conn = WinHttpConnection::new(&self.session, req.hostname, req.port)?;
+            self.connection = Some((req.hostname.into(), req.port, conn));
         }
-        let connection = self.connection.as_ref().unwrap();
-        let request_handle = WinHttpRequest::new(&connection, request.method, request.path)?;
 
-        request_handle.send(request.headers, request.body)?;
-        request_handle.receive()?;
-        let body = match request_handle.read() {
-            Ok(bytes) => Some(bytes),
-            Err(_) => None,
-        };
+        let (_, _, conn) = self.connection.as_ref().unwrap();
+        let request = WinHttpRequest::new(conn, req.method, req.path)?;
 
-        let status_code = request_handle.status_code()?;
-        let headers = request_handle.headers()?;
+        request.send(req.headers, req.body)?;
+        request.receive()?;
 
-        Ok(Response::new(status_code, headers, body))
+        self.request = Some(request);
+
+        Ok(())
     }
 
-    /// Return home's hostname if present
-    pub fn home(&self) -> Option<&str> {
-        if let Some(ref conn) = self.connection {
-            return Some(&conn.hostname);
+    pub fn get_status_code(&self) -> Result<u32> {
+        if let Some(handle) = &self.request {
+            Ok(handle.status_code()?)
+        } else {
+            Err(Error::from_win32())
         }
-        None
+    }
+
+    pub fn read_headers<'a>(&'a self, buf: &'a mut [u16]) -> Result<&'a [u16]> {
+        if let Some(handle) = &self.request {
+            Ok(handle.read_headers(buf)?)
+        } else {
+            Err(Error::from_win32())
+        }
+    }
+
+    pub fn read_chunk<'a>(&'a self, buf: &'a mut [u8]) -> Result<usize> {
+        if let Some(handle) = &self.request {
+            Ok(handle.read_chunk(buf)?)
+        } else {
+            Err(Error::from_win32())
+        }
     }
 }
 
@@ -68,8 +80,12 @@ pub struct Request<'a> {
     pub port: u16,
     pub method: &'a str,
     pub path: &'a str,
-    pub headers: Option<&'a HashMap<String, String>>,
-    pub body: Option<&'a str>,
+
+    /// UTF-16, CRLF-separated, double-null-terminated
+    pub headers: Option<&'a [u16]>,
+
+    /// Raw body bytes
+    pub body: Option<&'a [u8]>,
 }
 
 impl<'a> Request<'a> {
@@ -78,31 +94,14 @@ impl<'a> Request<'a> {
         port: u16,
         method: &'a str,
         path: &'a str,
-        headers: Option<&'a HashMap<String, String>>,
-        body: Option<&'a str>,
+        headers: Option<&'a [u16]>,
+        body: Option<&'a [u8]>,
     ) -> Self {
         Request {
             hostname,
             port,
             method,
             path,
-            headers,
-            body,
-        }
-    }
-}
-
-pub struct Response {
-    pub code: u32,
-    pub headers: HashMap<String, String>,
-    pub body: Option<String>,
-}
-
-impl Response {
-    fn new(code: u32, headers: HashMap<String, String>, body: Option<Vec<u8>>) -> Self {
-        let body = body.map(|bytes| String::from_utf8_lossy(&bytes).into_owned());
-        Response {
-            code,
             headers,
             body,
         }

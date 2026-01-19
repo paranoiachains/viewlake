@@ -1,7 +1,7 @@
 #![no_main]
 
 use log::info;
-use viewlake_agent::hello;
+use viewlake_agent::run;
 
 #[unsafe(no_mangle)]
 unsafe extern "C" fn main(_argc: i32, _argv: *const *const u8) -> u32 {
@@ -10,6 +10,6 @@ unsafe extern "C" fn main(_argc: i32, _argv: *const *const u8) -> u32 {
 
     info!("Started logger");
 
-    let _ = hello().unwrap();
+    let _ = run().unwrap();
     0
 }
