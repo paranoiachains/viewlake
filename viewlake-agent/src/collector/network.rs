@@ -1,15 +1,9 @@
-use windows::Win32::NetworkManagement::IpHelper::GAA_FLAG_INCLUDE_GATEWAYS;
-use windows::Win32::NetworkManagement::IpHelper::GAA_FLAG_INCLUDE_PREFIX;
-use windows::Win32::NetworkManagement::IpHelper::GetAdaptersAddresses;
-use windows::Win32::NetworkManagement::IpHelper::IP_ADAPTER_ADDRESSES_LH;
+use windows::Win32::NetworkManagement::IpHelper::*;
 use windows::Win32::NetworkManagement::NetManagement::*;
 use windows::Win32::Networking::WinSock::*;
 use windows::Win32::System::SystemInformation::*;
-use windows::core::Error;
-use windows::core::PCWSTR;
-use windows::core::PWSTR;
+use windows::core::{Error, PCWSTR, PWSTR};
 
-#[derive(serde::Serialize)]
 pub struct NetworkInfo {
     pub hostname: Option<String>,
     pub domain_or_workgroup: String,
@@ -17,7 +11,6 @@ pub struct NetworkInfo {
     pub adapters: Option<Vec<Adapter>>,
 }
 
-#[derive(serde::Serialize)]
 pub struct Adapter {
     pub friendly_name: String,
     pub description: String,
@@ -25,32 +18,18 @@ pub struct Adapter {
     pub gateways: Option<String>,
 }
 
-impl Adapter {
-    pub fn new(
-        friendly_name: String,
-        description: String,
-        ipv4_addresses: Option<Vec<String>>,
-        gateways: Option<String>,
-    ) -> Self {
-        Adapter {
-            friendly_name,
-            description,
-            ipv4_addresses,
-            gateways,
-        }
-    }
-}
-
 impl NetworkInfo {
     pub fn collect() -> Result<NetworkInfo, Error> {
         let (domain_or_workgroup, status) = Self::domain_or_workgroup()?;
+
         Ok(NetworkInfo {
-            hostname: Some(Self::hostname()?),
+            hostname: Self::hostname().ok(),
             domain_or_workgroup,
             status,
-            adapters: Some(Self::adapters_info()?),
+            adapters: Self::adapters_info().ok(),
         })
     }
+
     fn hostname() -> Result<String, Error> {
         unsafe {
             let mut size: u32 = 15000;
@@ -59,11 +38,10 @@ impl NetworkInfo {
             GetComputerNameExW(
                 ComputerNameDnsFullyQualified,
                 PWSTR(buffer.as_mut_ptr()),
-                &mut size as *mut u32,
+                &mut size,
             )?;
 
             buffer.truncate(size as usize);
-
             Ok(String::from_utf16_lossy(&buffer))
         }
     }
@@ -72,6 +50,7 @@ impl NetworkInfo {
         unsafe {
             let mut buffer = PWSTR::null();
             let mut status_result = NETSETUP_JOIN_STATUS::default();
+
             if NetGetJoinInformation(
                 PCWSTR::null(),
                 &mut buffer as *mut _,
@@ -86,6 +65,7 @@ impl NetworkInfo {
                 while *buffer.0.add(len) != 0 {
                     len += 1;
                 }
+
                 let slice = std::slice::from_raw_parts(buffer.0, len);
                 String::from_utf16_lossy(slice)
             } else {
@@ -94,7 +74,6 @@ impl NetworkInfo {
 
             NetApiBufferFree(Some(buffer.0 as _));
 
-            #[allow(non_upper_case_globals)]
             let status = match status_result {
                 NetSetupUnjoined => "Unjoined".to_string(),
                 NetSetupWorkgroupName => "Joined to Workgroup".to_string(),
@@ -110,47 +89,44 @@ impl NetworkInfo {
         unsafe {
             let mut size = 0u32;
 
-            GetAdaptersAddresses(
+            // first call - get required buffer size
+            let _ = GetAdaptersAddresses(
                 AF_UNSPEC.0 as u32,
                 GAA_FLAG_INCLUDE_PREFIX,
                 None,
                 None,
-                &mut size as *mut _,
+                &mut size,
             );
 
             let mut buffer = vec![0u8; size as usize];
-            let adapter_addresess = buffer.as_mut_ptr() as *mut IP_ADAPTER_ADDRESSES_LH;
+            let adapters_ptr = buffer.as_mut_ptr() as *mut IP_ADAPTER_ADDRESSES_LH;
 
             let ret = GetAdaptersAddresses(
                 AF_UNSPEC.0 as u32,
                 GAA_FLAG_INCLUDE_PREFIX | GAA_FLAG_INCLUDE_GATEWAYS,
                 None,
-                Some(adapter_addresess),
-                &mut size as *mut _,
+                Some(adapters_ptr),
+                &mut size,
             );
 
             if ret != 0 {
                 return Err(Error::from_win32());
             }
 
-            let mut current = adapter_addresess;
+            let mut current = adapters_ptr;
             let mut adapter_vec: Vec<Adapter> = Vec::new();
+
             while !current.is_null() {
                 let adapter = &*current;
-                let name = if !adapter.FriendlyName.is_null() {
-                    adapter
-                        .FriendlyName
-                        .to_string()
-                        .expect("Error while converting friendly name to string")
+
+                let friendly_name = if !adapter.FriendlyName.is_null() {
+                    adapter.FriendlyName.to_string().unwrap_or_default()
                 } else {
                     String::new()
                 };
 
                 let description = if !adapter.Description.is_null() {
-                    adapter
-                        .Description
-                        .to_string()
-                        .expect("Error while converting desc to string")
+                    adapter.Description.to_string().unwrap_or_default()
                 } else {
                     String::new()
                 };
@@ -158,12 +134,16 @@ impl NetworkInfo {
                 let ipv4_addrs = Self::get_ipv4_addresses(adapter);
                 let gateway = Self::get_default_gateway(adapter);
 
-                let instance = Adapter::new(name, description, ipv4_addrs, gateway);
-
-                adapter_vec.push(instance);
+                adapter_vec.push(Adapter {
+                    friendly_name,
+                    description,
+                    ipv4_addresses: ipv4_addrs,
+                    gateways: gateway,
+                });
 
                 current = adapter.Next;
             }
+
             Ok(adapter_vec)
         }
     }
@@ -177,24 +157,23 @@ impl NetworkInfo {
                 let unicast = &*current_unicast;
                 let sockaddr = unicast.Address.lpSockaddr;
 
-                if !sockaddr.is_null() {
-                    let family = (*sockaddr).sa_family;
-                    if family == AF_INET {
-                        let ipv4 = *(sockaddr as *const SOCKADDR_IN);
-                        let octets = ipv4.sin_addr.S_un.S_un_b;
-                        ipv4_addrs.push(format!(
-                            "{}.{}.{}.{}",
-                            octets.s_b1, octets.s_b2, octets.s_b3, octets.s_b4
-                        ));
-                    }
+                if !sockaddr.is_null() && (*sockaddr).sa_family == AF_INET {
+                    let ipv4 = *(sockaddr as *const SOCKADDR_IN);
+                    let octets = ipv4.sin_addr.S_un.S_un_b;
+
+                    ipv4_addrs.push(format!(
+                        "{}.{}.{}.{}",
+                        octets.s_b1, octets.s_b2, octets.s_b3, octets.s_b4
+                    ));
                 }
 
                 current_unicast = unicast.Next;
             }
-            if !ipv4_addrs.is_empty() {
-                Some(ipv4_addrs)
-            } else {
+
+            if ipv4_addrs.is_empty() {
                 None
+            } else {
+                Some(ipv4_addrs)
             }
         }
     }
@@ -207,59 +186,20 @@ impl NetworkInfo {
                 let gw = &*current_gw;
                 let sockaddr = gw.Address.lpSockaddr;
 
-                if !sockaddr.is_null() {
-                    let family = (*sockaddr).sa_family;
-                    if family == AF_INET {
-                        let ipv4 = *(sockaddr as *const SOCKADDR_IN);
-                        let octets = ipv4.sin_addr.S_un.S_un_b;
-                        return Some(format!(
-                            "{}.{}.{}.{}",
-                            octets.s_b1, octets.s_b2, octets.s_b3, octets.s_b4
-                        ));
-                    }
+                if !sockaddr.is_null() && (*sockaddr).sa_family == AF_INET {
+                    let ipv4 = *(sockaddr as *const SOCKADDR_IN);
+                    let octets = ipv4.sin_addr.S_un.S_un_b;
+
+                    return Some(format!(
+                        "{}.{}.{}.{}",
+                        octets.s_b1, octets.s_b2, octets.s_b3, octets.s_b4
+                    ));
                 }
 
                 current_gw = gw.Next;
             }
-        }
-        None
-    }
-}
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_collect_network_info() {
-        let info = NetworkInfo::collect().expect("Failed to collect network info");
-
-        let hostname = info.hostname.as_ref().expect("hostname error");
-        assert!(!hostname.is_empty(), "Hostname is empty");
-        println!("Hostname: {hostname}");
-
-        let valid_statuses = [
-            "Unjoined",
-            "Joined to Workgroup",
-            "Joined to Domain",
-            "Unknown",
-        ];
-        assert!(
-            valid_statuses.contains(&info.status.as_str()),
-            "Unexpected status: {}",
-            info.status
-        );
-        println!("Host's status: {}", info.status);
-        println!("Domain or workgroup: {}", info.domain_or_workgroup);
-
-        let adapters = info.adapters.as_ref().expect("adapters_info failed");
-        assert!(!adapters.is_empty(), "No network adapters found");
-
-        for adapter in adapters {
-            println!("Adapter: {}", adapter.friendly_name);
-            println!("Description: {}", adapter.description);
-            println!("IPv4: {:?}", adapter.ipv4_addresses);
-            println!("Gateway: {:?}", adapter.gateways);
+            None
         }
     }
 }

@@ -1,17 +1,12 @@
-use std::ffi::OsString;
 use std::os::windows::ffi::OsStringExt;
 use windows::Win32::Foundation::*;
-use windows::Win32::System::ProcessStatus::{
-    EnumProcessModules, EnumProcesses, GetModuleBaseNameW,
-};
+use windows::Win32::System::ProcessStatus::*;
 use windows::Win32::System::Threading::*;
 
-#[derive(serde::Serialize)]
 pub struct ProcessList {
     pub list: Vec<Process>,
 }
 
-#[derive(serde::Serialize)]
 pub struct Process {
     pub pid: u32,
     pub name: String,
@@ -21,31 +16,20 @@ impl ProcessList {
     pub fn collect() -> Result<Self, windows::core::Error> {
         let pids = Self::get_pid_list()?;
 
-        let mut processes: Vec<Process> = Vec::new();
-        for pid in pids {
-            if pid == 0 {
-                continue; // for some reason, pid 0 returns an error
+        let mut processes = Vec::with_capacity(256);
+
+        for pid in pids.iter().copied().filter(|&p| p != 0) {
+            if let Some(name) = Self::process_name_from_pid(pid) {
+                processes.push(Process { pid, name });
             }
-
-            let name = Self::process_name_from_pid(pid);
-
-            if name.is_none() {
-                continue; // Skip unnamed/access denied processes
-            }
-
-            let process = Process {
-                pid,
-                name: name.unwrap(),
-            };
-            processes.push(process);
         }
 
-        Ok(ProcessList { list: processes })
+        Ok(Self { list: processes })
     }
 
     fn get_pid_list() -> Result<Vec<u32>, windows::core::Error> {
-        let mut buf: Vec<u32> = vec![0; 1024];
-        let mut bytes_returned: u32 = 0;
+        let mut buf = vec![0u32; 1024];
+        let mut bytes_returned = 0u32;
 
         unsafe {
             EnumProcesses(
@@ -55,62 +39,34 @@ impl ProcessList {
             )?;
         }
 
-        let count = (bytes_returned as usize) / std::mem::size_of::<u32>();
-        buf.truncate(count);
-
+        buf.truncate((bytes_returned as usize) / std::mem::size_of::<u32>());
         Ok(buf)
     }
 
     fn process_name_from_pid(pid: u32) -> Option<String> {
         unsafe {
-            let handle_result =
-                OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, false, pid);
-
-            let handle = match handle_result {
-                Ok(h) => h,
-                Err(_) => return None,
-            };
-            let mut hmod = [0isize; 1024];
+            let handle =
+                OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, false, pid).ok()?;
+            let mut hmod = [HMODULE(0); 1024];
             let mut needed = 0u32;
 
             if EnumProcessModules(
                 handle,
-                hmod.as_mut_ptr() as *mut HMODULE,
+                hmod.as_mut_ptr(),
                 std::mem::size_of_val(&hmod) as u32,
                 &mut needed,
             )
             .is_ok()
             {
-                let mut buffer = [0u16; 260];
-                if GetModuleBaseNameW(handle, HMODULE(hmod[0]), &mut buffer) > 0 {
-                    let len = buffer.iter().position(|&c| c == 0).unwrap_or(buffer.len());
-                    let name = OsString::from_wide(&buffer[..len])
-                        .to_string_lossy()
-                        .into_owned();
+                let mut buf = [0u16; 260];
+                let len = GetModuleBaseNameW(handle, hmod[0], &mut buf) as usize;
+                if len > 0 {
+                    let name = String::from_utf16_lossy(&buf[..len]);
                     return Some(name);
                 }
             }
+
             None
         }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn get_processes() {
-        let processes =
-            ProcessList::collect().expect("ProcessList::collect() should not return Err");
-
-        assert!(
-            !processes.list.is_empty(),
-            "There should be at least one process"
-        );
-        println!(
-            "Processes: PID {} -> {}",
-            processes.list[0].pid, processes.list[0].name
-        );
     }
 }

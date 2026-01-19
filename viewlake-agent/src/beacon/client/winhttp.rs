@@ -1,7 +1,7 @@
 /// Low-level API for WinHTTP
 use core::ffi::c_void;
 use windows::Win32::Networking::WinHttp::{self, WinHttpSetOption};
-use windows::core::{Error, PCWSTR, Result};
+use windows::core::{Error, PCWSTR};
 
 // Steps with WinHTTP:
 // Open a session with WinHttpOpen
@@ -16,7 +16,7 @@ pub struct WinHttpHandle(Option<HINTERNET>);
 
 impl WinHttpHandle {
     /// Helper methods to check if handle is not null
-    pub fn ok_or_else(&self) -> Result<HINTERNET> {
+    pub fn ok_or_else(&self) -> windows::core::Result<HINTERNET> {
         match self.0 {
             Some(h) => Ok(h),
             None => Err(Error::from_win32()),
@@ -49,7 +49,7 @@ pub struct WinHttpSession {
 
 impl WinHttpSession {
     /// Returns WinHttpSession with the given user-agent
-    pub fn new(agent: &str) -> Result<Self> {
+    pub fn new(agent: &str) -> windows::core::Result<Self> {
         let (_, ua) = utf16_stack::<64>(agent);
         unsafe {
             let session = WinHttp::WinHttpOpen(
@@ -78,7 +78,7 @@ pub struct WinHttpConnection {
 }
 
 impl WinHttpConnection {
-    pub fn new(session: &WinHttpSession, hostname: &str, port: u16) -> Result<Self> {
+    pub fn new(session: &WinHttpSession, hostname: &str, port: u16) -> windows::core::Result<Self> {
         let (_host_buf, host) = utf16_stack::<256>(hostname);
         unsafe {
             let handle = WinHttp::WinHttpConnect(session.handle.ok_or_else()?, host, port, 0);
@@ -100,7 +100,11 @@ pub struct WinHttpRequest {
 }
 
 impl WinHttpRequest {
-    pub fn new(connection: &WinHttpConnection, method: &str, path: &str) -> Result<Self> {
+    pub fn new(
+        connection: &WinHttpConnection,
+        method: &str,
+        path: &str,
+    ) -> windows::core::Result<Self> {
         let (_m_buf, method) = utf16_stack::<8>(method);
         let (_p_buf, path) = utf16_stack::<512>(path);
 
@@ -142,7 +146,7 @@ impl WinHttpRequest {
     /// Sends HTTP request with given headers and body
     /// `headers` must be UTF-16, CRLF-separated, and double-null terminated.
 
-    pub fn send(&self, headers: Option<&[u16]>, body: Option<&[u8]>) -> Result<()> {
+    pub fn send(&self, headers: Option<&[u16]>, body: Option<&[u8]>) -> windows::core::Result<()> {
         let (body_ptr, body_len) = body
             .map(|b| (Some(b.as_ptr() as *const c_void), b.len() as u32))
             .unwrap_or((None, 0));
@@ -166,7 +170,7 @@ impl WinHttpRequest {
     }
 
     /// Helper function to add headers to request
-    fn add_headers(&self, headers: &[u16]) -> Result<()> {
+    fn add_headers(&self, headers: &[u16]) -> windows::core::Result<()> {
         unsafe {
             WinHttp::WinHttpAddRequestHeaders(
                 self.handle.ok_or_else()?,
@@ -177,7 +181,7 @@ impl WinHttpRequest {
     }
 
     /// Receive response
-    pub fn receive(&self) -> Result<()> {
+    pub fn receive(&self) -> windows::core::Result<()> {
         unsafe {
             WinHttp::WinHttpReceiveResponse(
                 self.handle.ok_or_else()?,
@@ -187,7 +191,7 @@ impl WinHttpRequest {
     }
 
     /// Read response to buffer
-    pub fn read_chunk(&self, buf: &mut [u8]) -> Result<usize> {
+    pub fn read_chunk(&self, buf: &mut [u8]) -> windows::core::Result<usize> {
         unsafe {
             let mut bytes_read: u32 = 0;
             WinHttp::WinHttpReadData(
@@ -201,7 +205,7 @@ impl WinHttpRequest {
         }
     }
 
-    pub fn status_code(&self) -> Result<u32> {
+    pub fn status_code(&self) -> windows::core::Result<u32> {
         unsafe {
             let mut code: u32 = 0;
             let mut length = std::mem::size_of::<u32>() as u32;
@@ -219,7 +223,7 @@ impl WinHttpRequest {
         }
     }
 
-    pub fn read_headers<'a>(&self, buf: &'a mut [u16]) -> Result<&'a [u16]> {
+    pub fn read_headers<'a>(&self, buf: &'a mut [u16]) -> windows::core::Result<&'a [u16]> {
         unsafe {
             let mut size_bytes: u32 = 0;
 

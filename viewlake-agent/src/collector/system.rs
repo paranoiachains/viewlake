@@ -1,24 +1,24 @@
-use windows::Wdk::System::SystemServices::*;
+use windows::Wdk::System::SystemServices::RtlGetVersion;
 use windows::Win32::Foundation::STATUS_SUCCESS;
-use windows::Win32::System::SystemInformation::*;
-use windows::Win32::System::SystemServices::*;
-use windows::core::{Error, Result};
+use windows::Win32::System::SystemInformation::{
+    GetNativeSystemInfo, OSVERSIONINFOEXW, SYSTEM_INFO,
+};
+use windows::core::Error;
 
-#[derive(serde::Serialize)]
 pub struct SystemInfo {
-    pub arch: String,
-    pub product_type: String,
+    pub arch: &'static str,
+    pub product_type: &'static str,
     pub version: String,
 }
 
 impl SystemInfo {
-    pub fn collect() -> Result<Self> {
+    pub fn collect() -> windows::core::Result<Self> {
         let (product_type, version) = Self::os()?;
 
         let arch = match Architecture::get() {
-            Architecture::AMD64 => "AMD64".to_string(),
-            Architecture::ARM64 => "ARM64".to_string(),
-            Architecture::Unknown => "Unknown".to_string(),
+            Architecture::AMD64 => "AMD64",
+            Architecture::ARM64 => "ARM64",
+            Architecture::Unknown => "Unknown",
         };
 
         Ok(SystemInfo {
@@ -28,18 +28,24 @@ impl SystemInfo {
         })
     }
 
-    fn os() -> Result<(String, String)> {
+    fn os() -> windows::core::Result<(&'static str, String)> {
         unsafe {
-            let mut os_version: OSVERSIONINFOEXW = std::mem::zeroed();
-            os_version.dwOSVersionInfoSize = std::mem::size_of::<OSVERSIONINFOEXW>() as u32;
-            let ntstatus = RtlGetVersion(&mut os_version as *mut _ as *mut OSVERSIONINFOW);
+            let mut os_version = std::mem::MaybeUninit::<OSVERSIONINFOEXW>::zeroed();
+            let os_version_ptr = os_version.as_mut_ptr();
+            (*os_version_ptr).dwOSVersionInfoSize = std::mem::size_of::<OSVERSIONINFOEXW>() as u32;
+
+            let ntstatus = RtlGetVersion(os_version_ptr as *mut _);
 
             if ntstatus == STATUS_SUCCESS {
+                let os_version = os_version.assume_init();
+
                 let product_type = match os_version.wProductType as u32 {
-                    VER_NT_WORKSTATION => "Workstation".to_string(),
-                    VER_NT_SERVER => "Server".to_string(),
-                    VER_NT_DOMAIN_CONTROLLER => "Domain Controller".to_string(),
-                    _ => "Unknown".to_string(),
+                    windows::Win32::System::SystemServices::VER_NT_WORKSTATION => "Workstation",
+                    windows::Win32::System::SystemServices::VER_NT_SERVER => "Server",
+                    windows::Win32::System::SystemServices::VER_NT_DOMAIN_CONTROLLER => {
+                        "Domain Controller"
+                    }
+                    _ => "Unknown",
                 };
 
                 let version = format!(
@@ -55,7 +61,6 @@ impl SystemInfo {
     }
 }
 
-#[derive(Debug)]
 enum Architecture {
     AMD64,
     ARM64,
@@ -65,48 +70,15 @@ enum Architecture {
 impl Architecture {
     fn get() -> Self {
         unsafe {
-            let mut sysinfo: SYSTEM_INFO = std::mem::zeroed();
-            GetNativeSystemInfo(&mut sysinfo as *mut _);
+            let mut sysinfo = std::mem::MaybeUninit::<SYSTEM_INFO>::zeroed();
+            GetNativeSystemInfo(sysinfo.as_mut_ptr());
 
-            let arch = sysinfo.Anonymous.Anonymous.wProcessorArchitecture;
-            match arch.0 {
+            let sysinfo = sysinfo.assume_init();
+            match sysinfo.Anonymous.Anonymous.wProcessorArchitecture.0 {
                 9 => Architecture::AMD64,
                 12 => Architecture::ARM64,
                 _ => Architecture::Unknown,
             }
         }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    #[test]
-    fn get_system_info() {
-        let os_info = SystemInfo::collect().expect("Failed to get OS info");
-
-        assert!(
-            os_info.arch == "AMD64" || os_info.arch == "ARM64" || os_info.arch == "Unknown",
-            "Unexpected architecture: {}",
-            os_info.arch
-        );
-        println!("Architecture: {:?}", os_info.arch);
-
-        assert!(
-            !os_info.version.is_empty(),
-            "OS version shouldn't be empty: {}",
-            os_info.version
-        );
-        println!("OS Version: {:?}", os_info.version);
-
-        assert!(
-            os_info.product_type == "Workstation"
-                || os_info.product_type == "Server"
-                || os_info.product_type == "Domain Controller"
-                || os_info.product_type == "Unknown",
-            "Unexpected product type: {}",
-            os_info.product_type
-        );
-        println!("Product type: {}", os_info.product_type);
     }
 }

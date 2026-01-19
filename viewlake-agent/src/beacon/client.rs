@@ -2,7 +2,7 @@
 /// High level API for WinHTTP
 mod winhttp;
 
-use windows::core::{Error, Result};
+use windows::core::Error;
 use winhttp::{WinHttpConnection, WinHttpRequest, WinHttpSession};
 
 /// Abstraction over WinHttpSession and WinHttpConnection
@@ -17,7 +17,7 @@ const DEFAULT_AGENT: &'static str = "SomeAgent"; // TODO: randomize user-agent
 
 impl Client {
     /// Initializes WinHttpSession
-    pub fn new() -> Result<Self> {
+    pub fn new() -> windows::core::Result<Self> {
         let session = WinHttpSession::new(DEFAULT_AGENT)?;
         Ok(Client {
             session,
@@ -27,7 +27,7 @@ impl Client {
     }
 
     /// Sends request.
-    pub fn request(&mut self, req: &Request) -> Result<()> {
+    pub fn request(&mut self, req: &Request) -> windows::core::Result<()> {
         let reuse = self
             .connection
             .as_ref()
@@ -50,7 +50,7 @@ impl Client {
         Ok(())
     }
 
-    pub fn get_status_code(&self) -> Result<u32> {
+    pub fn get_status_code(&self) -> windows::core::Result<u32> {
         if let Some(handle) = &self.request {
             Ok(handle.status_code()?)
         } else {
@@ -58,7 +58,7 @@ impl Client {
         }
     }
 
-    pub fn read_headers<'a>(&'a self, buf: &'a mut [u16]) -> Result<&'a [u16]> {
+    pub fn read_headers<'a>(&'a self, buf: &'a mut [u16]) -> windows::core::Result<&'a [u16]> {
         if let Some(handle) = &self.request {
             Ok(handle.read_headers(buf)?)
         } else {
@@ -66,7 +66,7 @@ impl Client {
         }
     }
 
-    pub fn read_chunk<'a>(&'a self, buf: &'a mut [u8]) -> Result<usize> {
+    pub fn read_chunk<'a>(&'a self, buf: &'a mut [u8]) -> windows::core::Result<usize> {
         if let Some(handle) = &self.request {
             Ok(handle.read_chunk(buf)?)
         } else {
