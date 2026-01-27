@@ -88,7 +88,7 @@ pub struct WinHttpConnection {
 
 impl WinHttpConnection {
     pub fn new(
-        session: WinHttpSession,
+        session: &WinHttpSession,
         hostname: PCWSTR,
         port: u16,
     ) -> windows::core::Result<Self> {
