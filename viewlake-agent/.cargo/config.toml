@@ -1,2 +1,8 @@
 [build]
+rustflags = [
+  "-Zunstable-options",
+  "-Cpanic=abort",
+  "-Zlocation-detail=none",
+  "-Zfmt-debug=none",
+]
 target = "x86_64-pc-windows-msvc"
