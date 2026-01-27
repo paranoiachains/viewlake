@@ -1,3 +1,5 @@
+cargo-features = ["panic-immediate-abort"]
+
 [package]
 name = "viewlake-agent"
 version = "0.1.0"
@@ -31,4 +33,4 @@ opt-level = "z"
 lto = true
 codegen-units = 1
 strip = true
-panic = "abort"
+panic = "immediate-abort"
