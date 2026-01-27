@@ -1,3 +1,12 @@
+cargo-features = ["panic-immediate-abort"]
+
 [workspace]
 members = ["viewlake-agent", "viewlake-srv"]
 resolver = "3"
+
+[profile.release]
+opt-level = "z"
+lto = true
+codegen-units = 1
+strip = true
+panic = "abort"
