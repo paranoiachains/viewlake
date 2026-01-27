@@ -1,5 +1,5 @@
 [unstable]
-build-std = ["core", "alloc", "std", "panic_abort"]
+build-std = ["core", "alloc", "std", "panic_abort", "proc_macro"]
 build-std-features = ["optimize_for_size"]
 
 [build]

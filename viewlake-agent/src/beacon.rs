@@ -21,11 +21,11 @@ impl Beacon {
         Ok(Self { client, id })
     }
 
-    pub fn init_conn(&mut self, hostname: &str, port: u16) -> windows::core::Result<()> {
+    pub fn init_conn(&mut self, hostname: &HSTRING, port: u16) -> windows::core::Result<()> {
         info!("sending initial request to {hostname}:{port}");
 
         let req = Request {
-            hostname: &HSTRING::from(hostname),
+            hostname,
             port,
             method: h!("GET"),
             path: h!("/"),
