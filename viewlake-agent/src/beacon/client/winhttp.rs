@@ -54,7 +54,7 @@ pub struct WinHttpSession {
 impl WinHttpSession {
     /// Returns WinHttpSession with the given user-agent
     pub fn new(agent: PCWSTR) -> windows::core::Result<Self> {
-        debug!("initializing creating WinHttpSession...");
+        debug!("initializing  winhttpsession...");
         unsafe {
             let session = WinHttp::WinHttpOpen(
                 agent,
@@ -137,7 +137,10 @@ impl WinHttpRequest {
                 WinHttp::WINHTTP_FLAG_SECURE,
             );
 
+            debug!("request handle opened");
+
             if request.is_null() {
+                error!("request handle is null");
                 return Err(Error::new(
                     HRESULT(1),
                     HSTRING::from("winhttpopenrequest returned null"),
@@ -157,6 +160,8 @@ impl WinHttpRequest {
                     std::mem::size_of::<u32>(),
                 )),
             )?;
+
+            debug!("http options set");
 
             Ok(Self {
                 handle: WinHttpHandle(Some(request)),
@@ -178,15 +183,20 @@ impl WinHttpRequest {
         }
 
         unsafe {
-            WinHttp::WinHttpSendRequest(
+            if let Err(e) = WinHttp::WinHttpSendRequest(
                 self.handle.ok_or_else()?,
                 None,
                 body_ptr,
                 body_len,
                 body_len,
                 0,
-            )?;
+            ) {
+                error!("got error [winhttpsendrequest]: {}", e);
+                return Err(e);
+            }
         }
+
+        debug!("request sent");
 
         Ok(())
     }
@@ -198,8 +208,11 @@ impl WinHttpRequest {
                 self.handle.ok_or_else()?,
                 &headers,
                 WinHttp::WINHTTP_ADDREQ_FLAG_ADD,
-            )
+            )?;
         }
+
+        debug!("headers added");
+        Ok(())
     }
 
     /// Receive response
