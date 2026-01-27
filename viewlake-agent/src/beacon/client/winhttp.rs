@@ -1,5 +1,6 @@
 /// Low-level API for WinHTTP
 use core::ffi::c_void;
+use log::{debug, error};
 use windows::Win32::Networking::WinHttp::{self, WinHttpSetOption};
 use windows::core::{Error, PCWSTR};
 
@@ -50,6 +51,7 @@ pub struct WinHttpSession {
 impl WinHttpSession {
     /// Returns WinHttpSession with the given user-agent
     pub fn new(agent: &str) -> windows::core::Result<Self> {
+        debug!("initializing creating WinHttpSession...");
         let (_, ua) = utf16_stack::<64>(agent);
         unsafe {
             let session = WinHttp::WinHttpOpen(
@@ -61,6 +63,7 @@ impl WinHttpSession {
             );
 
             if session.is_null() {
+                error!("winhttopen returned null");
                 return Err(Error::from_win32());
             } else {
                 Ok(Self {
@@ -79,11 +82,13 @@ pub struct WinHttpConnection {
 
 impl WinHttpConnection {
     pub fn new(session: &WinHttpSession, hostname: &str, port: u16) -> windows::core::Result<Self> {
+        debug!("initializing winhttpconnection...");
         let (_host_buf, host) = utf16_stack::<256>(hostname);
         unsafe {
             let handle = WinHttp::WinHttpConnect(session.handle.ok_or_else()?, host, port, 0);
 
             if handle.is_null() {
+                error!("winhttpconnect returned null");
                 return Err(Error::from_win32());
             } else {
                 Ok(Self {
@@ -105,6 +110,7 @@ impl WinHttpRequest {
         method: &str,
         path: &str,
     ) -> windows::core::Result<Self> {
+        debug!("initializing winhttp request...");
         let (_m_buf, method) = utf16_stack::<8>(method);
         let (_p_buf, path) = utf16_stack::<512>(path);
 
@@ -120,6 +126,7 @@ impl WinHttpRequest {
             );
 
             if request.is_null() {
+                error!("winhttpopenrequest returned null");
                 return Err(Error::from_win32());
             }
 
@@ -147,6 +154,7 @@ impl WinHttpRequest {
     /// `headers` must be UTF-16, CRLF-separated, and double-null terminated.
 
     pub fn send(&self, headers: Option<&[u16]>, body: Option<&[u8]>) -> windows::core::Result<()> {
+        debug!("sending http request...");
         let (body_ptr, body_len) = body
             .map(|b| (Some(b.as_ptr() as *const c_void), b.len() as u32))
             .unwrap_or((None, 0));

@@ -1,4 +1,3 @@
-use std::os::windows::ffi::OsStringExt;
 use windows::Win32::Foundation::*;
 use windows::Win32::System::ProcessStatus::*;
 use windows::Win32::System::Threading::*;

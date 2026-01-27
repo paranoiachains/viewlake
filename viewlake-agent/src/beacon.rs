@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 pub mod client;
 use client::*;
 use std::time::{SystemTime, UNIX_EPOCH};
