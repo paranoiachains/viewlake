@@ -2,7 +2,7 @@
 use core::ffi::c_void;
 use log::{debug, error};
 use windows::Win32::Networking::WinHttp::{self, WinHttpSetOption};
-use windows::core::{Error, PCWSTR};
+use windows::core::{Error, HRESULT, HSTRING, PCWSTR};
 
 // Steps with WinHTTP:
 // Open a session with WinHttpOpen
@@ -12,6 +12,9 @@ use windows::core::{Error, PCWSTR};
 // Receive the response with WinHttpReceiveResponse
 // Read the response using WinHttpReadData
 
+/// Return type of almost every WinAPI func used here
+type HINTERNET = *mut c_void;
+
 /// WinAPI HINTERNET wrapper, which implements Drop trait
 pub struct WinHttpHandle(Option<HINTERNET>);
 
@@ -20,7 +23,10 @@ impl WinHttpHandle {
     pub fn ok_or_else(&self) -> windows::core::Result<HINTERNET> {
         match self.0 {
             Some(h) => Ok(h),
-            None => Err(Error::from_win32()),
+            None => Err(Error::new(
+                HRESULT(1),
+                HSTRING::from("winhttphandle is null"),
+            )),
         }
     }
 
@@ -40,9 +46,6 @@ impl Drop for WinHttpHandle {
     }
 }
 
-/// Return type of almost every WinAPI func used here
-type HINTERNET = *mut c_void;
-
 /// WinHttpSession abstraction
 pub struct WinHttpSession {
     handle: WinHttpHandle,
@@ -50,12 +53,11 @@ pub struct WinHttpSession {
 
 impl WinHttpSession {
     /// Returns WinHttpSession with the given user-agent
-    pub fn new(agent: &str) -> windows::core::Result<Self> {
+    pub fn new(agent: PCWSTR) -> windows::core::Result<Self> {
         debug!("initializing creating WinHttpSession...");
-        let (_, ua) = utf16_stack::<64>(agent);
         unsafe {
             let session = WinHttp::WinHttpOpen(
-                ua,
+                agent,
                 WinHttp::WINHTTP_ACCESS_TYPE_NO_PROXY,
                 PCWSTR::null(), // WINHTTP_NO_PROXY_NAME
                 PCWSTR::null(), // WINHTTP_NO_PROXY_BYPASS
@@ -63,8 +65,10 @@ impl WinHttpSession {
             );
 
             if session.is_null() {
-                error!("winhttopen returned null");
-                return Err(Error::from_win32());
+                return Err(Error::new(
+                    HRESULT(1),
+                    HSTRING::from("winhttpsession is null"),
+                ));
             } else {
                 Ok(Self {
                     handle: WinHttpHandle(Some(session)),
@@ -78,21 +82,31 @@ impl WinHttpSession {
 /// target hostname
 pub struct WinHttpConnection {
     pub handle: WinHttpHandle,
+    pub hostname: PCWSTR,
+    pub port: u16,
 }
 
 impl WinHttpConnection {
-    pub fn new(session: &WinHttpSession, hostname: &str, port: u16) -> windows::core::Result<Self> {
+    pub fn new(
+        session: WinHttpSession,
+        hostname: PCWSTR,
+        port: u16,
+    ) -> windows::core::Result<Self> {
         debug!("initializing winhttpconnection...");
-        let (_host_buf, host) = utf16_stack::<256>(hostname);
         unsafe {
-            let handle = WinHttp::WinHttpConnect(session.handle.ok_or_else()?, host, port, 0);
+            let handle = WinHttp::WinHttpConnect(session.handle.ok_or_else()?, hostname, port, 0);
 
             if handle.is_null() {
                 error!("winhttpconnect returned null");
-                return Err(Error::from_win32());
+                return Err(Error::new(
+                    HRESULT(1),
+                    HSTRING::from("winhttpconnection is null"),
+                ));
             } else {
                 Ok(Self {
                     handle: WinHttpHandle(Some(handle)),
+                    hostname,
+                    port,
                 })
             }
         }
@@ -107,12 +121,10 @@ pub struct WinHttpRequest {
 impl WinHttpRequest {
     pub fn new(
         connection: &WinHttpConnection,
-        method: &str,
-        path: &str,
+        method: PCWSTR,
+        path: PCWSTR,
     ) -> windows::core::Result<Self> {
-        debug!("initializing winhttp request...");
-        let (_m_buf, method) = utf16_stack::<8>(method);
-        let (_p_buf, path) = utf16_stack::<512>(path);
+        debug!("initializing winhttprequest...");
 
         unsafe {
             let request = WinHttp::WinHttpOpenRequest(
@@ -126,8 +138,10 @@ impl WinHttpRequest {
             );
 
             if request.is_null() {
-                error!("winhttpopenrequest returned null");
-                return Err(Error::from_win32());
+                return Err(Error::new(
+                    HRESULT(1),
+                    HSTRING::from("winhttpopenrequest returned null"),
+                ));
             }
 
             // === TLS flags ===
@@ -249,7 +263,10 @@ impl WinHttpRequest {
             let required_u16 = (size_bytes as usize) / 2;
 
             if buf.len() < required_u16 {
-                return Err(Error::from_win32()); // buffer too small
+                return Err(Error::new(
+                    HRESULT(1),
+                    HSTRING::from("exceeded buffer size"),
+                ));
             }
 
             // 2. Fetch headers into caller buffer
@@ -269,21 +286,4 @@ impl WinHttpRequest {
             Ok(&buf[..written_u16])
         }
     }
-}
-
-#[inline(always)]
-pub fn utf16_stack<const N: usize>(s: &str) -> ([u16; N], PCWSTR) {
-    let mut buf = [0u16; N];
-    let mut i = 0;
-
-    for c in s.encode_utf16() {
-        if i + 1 >= N {
-            break;
-        }
-        buf[i] = c;
-        i += 1;
-    }
-
-    buf[i] = 0; // null terminator
-    (buf, PCWSTR(buf.as_ptr()))
 }
