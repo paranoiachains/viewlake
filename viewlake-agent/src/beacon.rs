@@ -23,6 +23,7 @@ impl Beacon {
 
     pub fn init_conn(&mut self, hostname: &HSTRING, port: u16) -> windows::core::Result<()> {
         info!("sending initial request to {hostname}:{port}");
+        let id_bytes = self.id.to_le_bytes();
 
         let req = Request {
             hostname,
@@ -30,7 +31,7 @@ impl Beacon {
             method: h!("GET"),
             path: h!("/"),
             headers: None,
-            body: None,
+            body: Some(&id_bytes),
         };
 
         let resp = self.client.request(&req)?;

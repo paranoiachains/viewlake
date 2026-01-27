@@ -2,7 +2,7 @@
 use core::ffi::c_void;
 use log::{debug, error};
 use windows::Win32::Networking::WinHttp::{self, WinHttpSetOption};
-use windows::core::{Error, HRESULT, HSTRING, PCWSTR};
+use windows::core::{Error, PCWSTR};
 
 // Steps with WinHTTP:
 // Open a session with WinHttpOpen
@@ -23,10 +23,7 @@ impl WinHttpHandle {
     pub fn ok_or_else(&self) -> windows::core::Result<HINTERNET> {
         match self.0 {
             Some(h) => Ok(h),
-            None => Err(Error::new(
-                HRESULT(1),
-                HSTRING::from("winhttphandle is null"),
-            )),
+            None => Err(Error::from_win32()),
         }
     }
 
@@ -65,10 +62,7 @@ impl WinHttpSession {
             );
 
             if session.is_null() {
-                return Err(Error::new(
-                    HRESULT(1),
-                    HSTRING::from("winhttpsession is null"),
-                ));
+                return Err(Error::from_win32());
             } else {
                 Ok(Self {
                     handle: WinHttpHandle(Some(session)),
@@ -99,10 +93,7 @@ impl WinHttpConnection {
 
             if handle.is_null() {
                 error!("winhttpconnect returned null");
-                return Err(Error::new(
-                    HRESULT(1),
-                    HSTRING::from("winhttpconnection is null"),
-                ));
+                return Err(Error::from_win32());
             } else {
                 Ok(Self {
                     handle: WinHttpHandle(Some(handle)),
@@ -141,7 +132,7 @@ impl WinHttpRequest {
 
             if request.is_null() {
                 error!("request handle is null");
-                return Err(Error::new(HRESULT(1), HSTRING::new()));
+                return Err(Error::from_win32());
             }
 
             debug!("request handle opened successfully");
@@ -272,10 +263,7 @@ impl WinHttpRequest {
             let required_u16 = (size_bytes as usize) / 2;
 
             if buf.len() < required_u16 {
-                return Err(Error::new(
-                    HRESULT(1),
-                    HSTRING::from("exceeded buffer size"),
-                ));
+                return Err(Error::from_win32());
             }
 
             // 2. Fetch headers into caller buffer
