@@ -25,3 +25,10 @@ simple_logger = { version = "5", optional = true }
 
 [features]
 logging = ["simple_logger"]
+
+[profile.release]
+opt-level = "z"
+lto = true
+codegen-units = 1
+strip = true
+panic = "abort"
