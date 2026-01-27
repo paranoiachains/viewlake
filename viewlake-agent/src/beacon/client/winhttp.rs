@@ -84,11 +84,12 @@ pub struct WinHttpConnection {
     pub handle: WinHttpHandle,
     pub hostname: PCWSTR,
     pub port: u16,
+    session: WinHttpSession,
 }
 
 impl WinHttpConnection {
     pub fn new(
-        session: &WinHttpSession,
+        session: WinHttpSession,
         hostname: PCWSTR,
         port: u16,
     ) -> windows::core::Result<Self> {
@@ -107,6 +108,7 @@ impl WinHttpConnection {
                     handle: WinHttpHandle(Some(handle)),
                     hostname,
                     port,
+                    session,
                 })
             }
         }

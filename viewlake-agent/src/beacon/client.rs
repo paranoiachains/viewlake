@@ -31,7 +31,7 @@ impl Client {
             info!("creating new connection... user-agent is {}", DEFAULT_AGENT);
             let session = WinHttpSession::new(PCWSTR(DEFAULT_AGENT.as_ptr()))?;
             self.connection = Some(WinHttpConnection::new(
-                &session,
+                session,
                 PCWSTR(req.hostname.as_ptr()),
                 req.port,
             )?);
