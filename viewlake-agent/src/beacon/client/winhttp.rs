@@ -137,15 +137,12 @@ impl WinHttpRequest {
                 WinHttp::WINHTTP_FLAG_SECURE,
             );
 
-            debug!("request handle opened");
-
             if request.is_null() {
                 error!("request handle is null");
-                return Err(Error::new(
-                    HRESULT(1),
-                    HSTRING::from("winhttpopenrequest returned null"),
-                ));
+                return Err(Error::new(HRESULT(1), HSTRING::new()));
             }
+
+            debug!("request handle opened successfully");
 
             // === TLS flags ===
             let flags: u32 = WinHttp::SECURITY_FLAG_IGNORE_UNKNOWN_CA
@@ -183,17 +180,14 @@ impl WinHttpRequest {
         }
 
         unsafe {
-            if let Err(e) = WinHttp::WinHttpSendRequest(
+            WinHttp::WinHttpSendRequest(
                 self.handle.ok_or_else()?,
                 None,
                 body_ptr,
                 body_len,
                 body_len,
                 0,
-            ) {
-                error!("got error [winhttpsendrequest]: {}", e);
-                return Err(e);
-            }
+            )?;
         }
 
         debug!("request sent");
