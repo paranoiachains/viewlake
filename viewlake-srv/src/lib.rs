@@ -1,5 +1,7 @@
 use poem::{
-    Body, Route, Server, handler,
+    Body, Route, Server,
+    error::ReadBodyError,
+    handler,
     listener::{Listener, RustlsCertificate, RustlsConfig, TcpListener},
     post,
 };
@@ -20,11 +22,7 @@ pub async fn run(addr: &str, cert: &str, key: &str) -> Result<(), std::io::Error
 }
 
 #[handler]
-async fn hello(data: Body) -> String {
-    format!(
-        "hello! body: {:?}",
-        data.into_string()
-            .await
-            .unwrap_or("Couldn't read body".to_string())
-    )
+async fn hello(data: Body) -> Result<String, ReadBodyError> {
+    let body = data.into_string().await?;
+    Ok(format!("hello! body: {:?}", body))
 }
