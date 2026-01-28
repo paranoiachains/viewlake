@@ -25,12 +25,23 @@ impl Beacon {
         info!("sending initial request to {hostname}:{port}");
         let id_bytes = self.id.to_le_bytes();
 
+        let mut headers: Vec<u16> = format!(
+            "Content-Length: {}\r\nContent-Type: application/octet-stream\r\n",
+            id_bytes.len()
+        )
+        .encode_utf16()
+        .collect();
+
+        // double-null terminate
+        headers.push(0);
+        headers.push(0);
+
         let req = Request {
             hostname,
             port,
             method: HSTRING::from("POST"),
             path: HSTRING::from("/hello"),
-            headers: None,
+            headers: Some(&headers),
             body: Some(&id_bytes),
         };
 
