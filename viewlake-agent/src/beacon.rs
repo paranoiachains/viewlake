@@ -52,6 +52,7 @@ fn build_winhttp_headers(headers: &[HSTRING]) -> Vec<u16> {
 
     for header in headers {
         buf.extend(header.as_wide());
+        buf.push(0u16);
     }
 
     // Double-null terminate the whole block
