@@ -28,14 +28,16 @@ impl Beacon {
         let req = Request {
             hostname,
             port,
-            method: HSTRING::from("GET"),
-            path: HSTRING::from("/"),
+            method: HSTRING::from("POST"),
+            path: HSTRING::from("/hello"),
             headers: None,
             body: Some(&id_bytes),
         };
 
         let resp = self.client.request(req)?;
-        info!("status code: {}", resp.status_code);
+
+        info!("response body: {}", resp.body);
+        info!("response headers: {}", resp.headers);
 
         Ok(())
     }

@@ -12,7 +12,7 @@ unsafe extern "C" fn main(_argc: i32, _argv: *const *const u8) -> u32 {
     info!("started logger");
 
     let hostname = HSTRING::from("127.0.0.1");
-    let port = 9090;
+    let port = 3000;
 
     info!("home's addr: {}:{}", hostname, port);
 
