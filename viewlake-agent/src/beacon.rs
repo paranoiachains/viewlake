@@ -52,7 +52,6 @@ fn build_winhttp_headers(headers: &[HSTRING]) -> Vec<u16> {
 
     for header in headers {
         buf.extend(header.as_wide());
-        buf.extend("\r\n".encode_utf16());
     }
 
     buf.push(0);
