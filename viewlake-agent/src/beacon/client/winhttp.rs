@@ -198,7 +198,7 @@ impl WinHttpRequest {
         unsafe {
             WinHttp::WinHttpAddRequestHeaders(
                 self.handle.ok_or_else()?,
-                &headers,
+                headers,
                 WinHttp::WINHTTP_ADDREQ_FLAG_ADD,
             )?;
         }
