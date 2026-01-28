@@ -2,7 +2,7 @@
 use core::ffi::c_void;
 use log::{debug, error};
 use windows::Win32::Networking::WinHttp::{self, WinHttpSetOption};
-use windows::core::{Error, PCWSTR};
+use windows::core::{Error, HSTRING, PCWSTR};
 
 // Steps with WinHTTP:
 // Open a session with WinHttpOpen
@@ -76,7 +76,7 @@ impl WinHttpSession {
 /// target hostname
 pub struct WinHttpConnection {
     pub handle: WinHttpHandle,
-    pub hostname: PCWSTR,
+    pub hostname: HSTRING,
     pub port: u16,
     session: WinHttpSession,
 }
@@ -84,12 +84,17 @@ pub struct WinHttpConnection {
 impl WinHttpConnection {
     pub fn new(
         session: WinHttpSession,
-        hostname: PCWSTR,
+        hostname: HSTRING,
         port: u16,
     ) -> windows::core::Result<Self> {
         debug!("initializing winhttpconnection...");
         unsafe {
-            let handle = WinHttp::WinHttpConnect(session.handle.ok_or_else()?, hostname, port, 0);
+            let handle = WinHttp::WinHttpConnect(
+                session.handle.ok_or_else()?,
+                PCWSTR(hostname.as_ptr()),
+                port,
+                0,
+            );
 
             if handle.is_null() {
                 error!("winhttpconnect returned null");
@@ -245,7 +250,7 @@ impl WinHttpRequest {
         }
     }
 
-    pub fn read_headers<'a>(&self, buf: &'a mut [u16]) -> windows::core::Result<&'a [u16]> {
+    pub fn read_headers<'a>(&self, buf: &'a mut [u16]) -> windows::core::Result<usize> {
         unsafe {
             let mut size_bytes: u32 = 0;
 
@@ -280,7 +285,7 @@ impl WinHttpRequest {
 
             let written_u16 = (size_bytes as usize) / 2;
 
-            Ok(&buf[..written_u16])
+            Ok(written_u16)
         }
     }
 }

