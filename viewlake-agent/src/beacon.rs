@@ -36,11 +36,8 @@ impl Beacon {
 
         let resp = self.client.request(req)?;
 
-        info!("response body: {}", String::from_utf8_lossy(&resp.body));
-        info!(
-            "response headers: {}",
-            String::from_utf16_lossy(&resp.headers)
-        );
+        info!("response body: {}", resp.body);
+        info!("response headers: {}", resp.headers);
 
         Ok(())
     }
