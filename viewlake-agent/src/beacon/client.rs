@@ -87,7 +87,7 @@ impl Response {
         Ok(Response {
             status_code,
             headers: String::from_utf16_lossy(&headers_buf),
-            body: String::from_utf8_lossy(&body).to_string(),
+            body: String::from_utf8(body)?.to_string(),
         })
     }
 }

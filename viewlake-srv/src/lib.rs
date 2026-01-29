@@ -1,8 +1,9 @@
 use poem::{
-    Body, Route, Server,
+    Body, EndpointExt, Route, Server,
     error::ReadBodyError,
     handler,
     listener::{Listener, RustlsCertificate, RustlsConfig, TcpListener},
+    middleware::Tracing,
     post,
 };
 
@@ -15,14 +16,16 @@ fn setup_rustls_config(cert: &str, key: &str) -> Result<RustlsConfig, std::io::E
 
 pub async fn run(addr: &str, cert: &str, key: &str) -> Result<(), std::io::Error> {
     let config = setup_rustls_config(cert, key)?;
-    let app = Route::new().at("/hello", post(hello));
+    let app = Route::new().at("/api/v1/hello", post(hello)).with(Tracing);
+
     Server::new(TcpListener::bind(addr).rustls(config))
         .run(app)
         .await
 }
 
 #[handler]
-async fn hello(data: Body) -> Result<String, ReadBodyError> {
-    let body = data.into_string().await?;
-    Ok(format!("hello! body: {:?}", body))
+async fn hello(body: Body) -> Result<String, ReadBodyError> {
+    let bytes = body.into_bytes().await?;
+
+    Ok(format!("hello! body: {:?}", bytes))
 }

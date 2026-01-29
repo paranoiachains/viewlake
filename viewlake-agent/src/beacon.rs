@@ -25,10 +25,7 @@ impl Beacon {
         info!("sending initial request to {hostname}:{port}");
         let id_bytes = self.id.to_le_bytes();
 
-        let headers = [
-            HSTRING::from("Content-Type: application/octet-stream"),
-            HSTRING::from("hi: hi"),
-        ];
+        let headers = [HSTRING::from("Content-Type: application/octet-stream")];
 
         let header_block = build_winhttp_headers(&headers);
 
@@ -36,7 +33,7 @@ impl Beacon {
             hostname,
             port,
             method: HSTRING::from("POST"),
-            path: HSTRING::from("/hello"),
+            path: HSTRING::from("/api/v1/hello"),
             headers: Some(&header_block),
             body: Some(&id_bytes),
         };
