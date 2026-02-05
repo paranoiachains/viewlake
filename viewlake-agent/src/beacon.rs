@@ -1,6 +1,6 @@
 pub mod client;
 use client::*;
-use log::info;
+use log::{debug, info};
 use std::{
     net::SocketAddrV4,
     time::{SystemTime, UNIX_EPOCH},
@@ -61,7 +61,10 @@ impl Beacon {
         info!("collecting system info...");
         let sys_info = collector::SystemFingerprint::collect()?;
 
-        let bytes = postcard::to_allocvec(&sys_info).unwrap_or(Vec::from("serialization error"));
+        let bytes =
+            postcard::to_allocvec(&sys_info).map_err(|_| windows::core::Error::from_win32())?;
+
+        debug!("sending {} bytes of fingerprint", bytes.len());
 
         let headers = [HSTRING::from("Content-Type: application/octet-stream")];
 

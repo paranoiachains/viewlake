@@ -2,6 +2,7 @@ use poem::{
     Body, EndpointExt, Route, Server,
     error::ReadBodyError,
     handler,
+    http::StatusCode,
     listener::{Listener, RustlsCertificate, RustlsConfig, TcpListener},
     middleware::Tracing,
     post,
@@ -9,7 +10,7 @@ use poem::{
 
 use viewlake_agent::collector::SystemFingerprint;
 
-use tracing::{debug, info};
+use tracing::{debug, error, info};
 
 fn setup_rustls_config(cert: &str, key: &str) -> Result<RustlsConfig, std::io::Error> {
     let cert_bytes = std::fs::read(cert)?;
@@ -31,10 +32,16 @@ pub async fn run(addr: &str, cert: &str, key: &str) -> Result<(), std::io::Error
 }
 
 #[handler]
-async fn hello(body: Body) -> Result<(), ReadBodyError> {
+async fn hello(body: Body) -> poem::Result<()> {
     let bytes = body.into_bytes().await?;
 
-    let fingerprint: SystemFingerprint = postcard::from_bytes(&bytes).unwrap();
+    let fingerprint: SystemFingerprint = match postcard::from_bytes(&bytes) {
+        Ok(fprint) => fprint,
+        Err(e) => {
+            error!("got deserialization error: {e}");
+            return Err(poem::Error::new(e, StatusCode::INTERNAL_SERVER_ERROR));
+        }
+    };
 
     debug!(
         "fingerprint deserialized: {:#?}",
