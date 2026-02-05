@@ -7,6 +7,8 @@ use poem::{
     post,
 };
 
+use tracing::info;
+
 fn setup_rustls_config(cert: &str, key: &str) -> Result<RustlsConfig, std::io::Error> {
     let cert_bytes = std::fs::read(cert)?;
     let key_bytes = std::fs::read(key)?;
@@ -16,7 +18,10 @@ fn setup_rustls_config(cert: &str, key: &str) -> Result<RustlsConfig, std::io::E
 
 pub async fn run(addr: &str, cert: &str, key: &str) -> Result<(), std::io::Error> {
     let config = setup_rustls_config(cert, key)?;
-    let app = Route::new().at("/api/v1/hello", post(hello)).with(Tracing);
+    let app = Route::new()
+        .at("/api/v1/hello", post(hello))
+        .at("/api/v1/sysinfo", post(sysinfo))
+        .with(Tracing);
 
     Server::new(TcpListener::bind(addr).rustls(config))
         .run(app)
@@ -24,8 +29,19 @@ pub async fn run(addr: &str, cert: &str, key: &str) -> Result<(), std::io::Error
 }
 
 #[handler]
-async fn hello(body: Body) -> Result<String, ReadBodyError> {
+async fn hello(body: Body) -> Result<(), ReadBodyError> {
     let bytes = body.into_bytes().await?;
 
-    Ok(format!("hello! body: {:?}", bytes))
+    info!("got initial message, agent id: {:?}", bytes);
+
+    Ok(())
+}
+
+#[handler]
+async fn sysinfo(body: Body) -> Result<(), ReadBodyError> {
+    let bytes = body.into_bytes().await?;
+
+    info!("got sysinfo: {:?}", bytes);
+
+    Ok(())
 }
