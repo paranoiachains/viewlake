@@ -4,7 +4,6 @@ use std::net::SocketAddrV4;
 
 use log::{error, info};
 use viewlake_agent::run;
-use windows::core::HSTRING;
 
 #[unsafe(no_mangle)]
 unsafe extern "C" fn main(_argc: i32, _argv: *const *const u8) -> u32 {
@@ -13,9 +12,9 @@ unsafe extern "C" fn main(_argc: i32, _argv: *const *const u8) -> u32 {
 
     info!("started logger");
 
-    let home = SocketAddrV4::from("127.0.0.1:3000");
+    let home = SocketAddrV4::from("127.0.0.1:3000".parse().unwrap());
 
-    info!("home's addr: {}:{}", hostname, port);
+    info!("home's addr: {}:{}", home.ip(), home.port());
 
     if let Err(e) = run(home) {
         error!("got error: {}", e);
