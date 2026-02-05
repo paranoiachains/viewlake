@@ -1,7 +1,5 @@
 use poem::{
-    Body, EndpointExt, Route, Server,
-    error::ReadBodyError,
-    handler,
+    Body, EndpointExt, Route, Server, handler,
     http::StatusCode,
     listener::{Listener, RustlsCertificate, RustlsConfig, TcpListener},
     middleware::Tracing,
@@ -35,6 +33,15 @@ pub async fn run(addr: &str, cert: &str, key: &str) -> Result<(), std::io::Error
 async fn hello(body: Body) -> poem::Result<()> {
     let bytes = body.into_bytes().await?;
 
+    info!("got initial message, agent id: {:?}", bytes);
+
+    Ok(())
+}
+
+#[handler]
+async fn sysinfo(body: Body) -> poem::Result<()> {
+    let bytes = body.into_bytes().await?;
+
     let fingerprint: SystemFingerprint = match postcard::from_bytes(&bytes) {
         Ok(fprint) => fprint,
         Err(e) => {
@@ -47,15 +54,6 @@ async fn hello(body: Body) -> poem::Result<()> {
         "fingerprint deserialized: {:#?}",
         fingerprint.network.hostname
     );
-
-    info!("got initial message, agent id: {:?}", bytes);
-
-    Ok(())
-}
-
-#[handler]
-async fn sysinfo(body: Body) -> Result<(), ReadBodyError> {
-    let bytes = body.into_bytes().await?;
 
     debug!("got sysinfo: {:?}", bytes);
 
