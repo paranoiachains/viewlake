@@ -1,3 +1,4 @@
+use serde::Serialize;
 use windows::Wdk::System::SystemServices::RtlGetVersion;
 use windows::Win32::Foundation::STATUS_SUCCESS;
 use windows::Win32::System::SystemInformation::{
@@ -5,6 +6,7 @@ use windows::Win32::System::SystemInformation::{
 };
 use windows::core::Error;
 
+#[derive(Serialize)]
 pub struct SystemInfo {
     pub arch: &'static str,
     pub product_type: &'static str,

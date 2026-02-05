@@ -1,4 +1,4 @@
-#![allow(dead_code)]
+use serde::Serialize;
 
 use crate::collector::{
     network::NetworkInfo, processes::ProcessList, system::SystemInfo, user::UserInfo,
@@ -9,11 +9,12 @@ mod processes;
 mod system;
 mod user;
 
+#[derive(Serialize)]
 pub struct SystemFingerprint {
-    pub network: NetworkInfo,
-    pub processes: ProcessList,
-    pub system: SystemInfo,
-    pub user: UserInfo,
+    network: NetworkInfo,
+    processes: ProcessList,
+    system: SystemInfo,
+    user: UserInfo,
 }
 
 impl SystemFingerprint {

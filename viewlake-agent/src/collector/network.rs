@@ -1,23 +1,26 @@
 #![allow(non_upper_case_globals)]
 
+use serde::Serialize;
 use windows::Win32::NetworkManagement::IpHelper::*;
 use windows::Win32::NetworkManagement::NetManagement::*;
 use windows::Win32::Networking::WinSock::*;
 use windows::Win32::System::SystemInformation::*;
 use windows::core::{Error, PCWSTR, PWSTR};
 
+#[derive(Serialize)]
 pub struct NetworkInfo {
-    pub hostname: Option<String>,
-    pub domain_or_workgroup: String,
-    pub status: String,
-    pub adapters: Option<Vec<Adapter>>,
+    hostname: Option<String>,
+    domain_or_workgroup: String,
+    status: String,
+    adapters: Option<Vec<Adapter>>,
 }
 
+#[derive(Serialize)]
 pub struct Adapter {
-    pub friendly_name: String,
-    pub description: String,
-    pub ipv4_addresses: Option<Vec<String>>,
-    pub gateways: Option<String>,
+    friendly_name: String,
+    description: String,
+    ipv4_addresses: Option<Vec<String>>,
+    gateways: Option<String>,
 }
 
 impl NetworkInfo {

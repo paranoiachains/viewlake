@@ -142,7 +142,6 @@ impl WinHttpRequest {
 
             debug!("request handle opened successfully");
 
-            // === TLS flags ===
             let flags: u32 = WinHttp::SECURITY_FLAG_IGNORE_UNKNOWN_CA
                 | WinHttp::SECURITY_FLAG_IGNORE_CERT_CN_INVALID
                 | WinHttp::SECURITY_FLAG_IGNORE_CERT_DATE_INVALID;
@@ -166,7 +165,6 @@ impl WinHttpRequest {
 
     /// Sends HTTP request with given headers and body
     /// `headers` must be UTF-16, CRLF-separated, and double-null terminated.
-
     pub fn send(&self, headers: Option<&[u16]>, body: Option<&[u8]>) -> windows::core::Result<()> {
         debug!("sending http request...");
         let (body_ptr, body_len) = body

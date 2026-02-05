@@ -1,5 +1,7 @@
 #![no_main]
 
+use std::net::SocketAddrV4;
+
 use log::{error, info};
 use viewlake_agent::run;
 use windows::core::HSTRING;
@@ -11,12 +13,11 @@ unsafe extern "C" fn main(_argc: i32, _argv: *const *const u8) -> u32 {
 
     info!("started logger");
 
-    let hostname = HSTRING::from("127.0.0.1");
-    let port = 3000;
+    let home = SocketAddrV4::from("127.0.0.1:3000");
 
     info!("home's addr: {}:{}", hostname, port);
 
-    if let Err(e) = run(hostname, port) {
+    if let Err(e) = run(home) {
         error!("got error: {}", e);
     }
 

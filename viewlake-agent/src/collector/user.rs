@@ -1,9 +1,11 @@
+use serde::Serialize;
 use windows::Win32::Foundation::*;
 use windows::Win32::Security::*;
 use windows::Win32::System::Threading::{GetCurrentProcess, OpenProcessToken};
 use windows::Win32::System::WindowsProgramming::GetUserNameW;
 use windows::core::PWSTR;
 
+#[derive(Serialize)]
 pub struct UserInfo {
     pub username: Option<String>,
     pub groups: Option<Vec<String>>,

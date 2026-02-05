@@ -14,7 +14,6 @@ pub struct Client {
 const DEFAULT_AGENT: &HSTRING = h!("DEFAULT_AGENT"); // TODO: randomize user-agent
 
 impl Client {
-    /// Initializes WinHttpSession
     pub fn new() -> windows::core::Result<Self> {
         Ok(Client { connection: None })
     }

