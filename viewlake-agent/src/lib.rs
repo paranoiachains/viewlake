@@ -1,5 +1,5 @@
 mod beacon;
-mod collector;
+pub mod collector;
 
 use std::net::SocketAddrV4;
 

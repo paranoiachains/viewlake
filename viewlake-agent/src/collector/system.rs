@@ -1,4 +1,4 @@
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use windows::Wdk::System::SystemServices::RtlGetVersion;
 use windows::Win32::Foundation::STATUS_SUCCESS;
 use windows::Win32::System::SystemInformation::{
@@ -6,10 +6,10 @@ use windows::Win32::System::SystemInformation::{
 };
 use windows::core::Error;
 
-#[derive(Serialize)]
+#[derive(Deserialize, Serialize)]
 pub struct SystemInfo {
-    pub arch: &'static str,
-    pub product_type: &'static str,
+    pub arch: String,
+    pub product_type: String,
     pub version: String,
 }
 
@@ -24,8 +24,8 @@ impl SystemInfo {
         };
 
         Ok(SystemInfo {
-            arch,
-            product_type,
+            arch: arch.to_string(),
+            product_type: product_type.to_string(),
             version,
         })
     }

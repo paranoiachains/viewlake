@@ -7,7 +7,9 @@ use poem::{
     post,
 };
 
-use tracing::info;
+use viewlake_agent::collector::SystemFingerprint;
+
+use tracing::{debug, info};
 
 fn setup_rustls_config(cert: &str, key: &str) -> Result<RustlsConfig, std::io::Error> {
     let cert_bytes = std::fs::read(cert)?;
@@ -32,6 +34,13 @@ pub async fn run(addr: &str, cert: &str, key: &str) -> Result<(), std::io::Error
 async fn hello(body: Body) -> Result<(), ReadBodyError> {
     let bytes = body.into_bytes().await?;
 
+    let fingerprint: SystemFingerprint = postcard::from_bytes(&bytes).unwrap();
+
+    debug!(
+        "fingerprint deserialized: {:#?}",
+        fingerprint.network.hostname
+    );
+
     info!("got initial message, agent id: {:?}", bytes);
 
     Ok(())
@@ -41,7 +50,7 @@ async fn hello(body: Body) -> Result<(), ReadBodyError> {
 async fn sysinfo(body: Body) -> Result<(), ReadBodyError> {
     let bytes = body.into_bytes().await?;
 
-    info!("got sysinfo: {:?}", bytes);
+    debug!("got sysinfo: {:?}", bytes);
 
     Ok(())
 }

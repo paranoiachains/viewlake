@@ -1,14 +1,14 @@
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use windows::Win32::Foundation::*;
 use windows::Win32::System::ProcessStatus::*;
 use windows::Win32::System::Threading::*;
 
-#[derive(Serialize)]
+#[derive(Deserialize, Serialize)]
 pub struct ProcessList {
     pub list: Vec<Process>,
 }
 
-#[derive(Serialize)]
+#[derive(Deserialize, Serialize)]
 pub struct Process {
     pub pid: u32,
     pub name: String,
