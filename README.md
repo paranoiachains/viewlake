@@ -1,14 +1,12 @@
 # Compile command:
+## Agent
 ``` bash
-cargo +nightly build -Z build-std=std,core,alloc,panic_abort -Z build-std-features="optimize_for_size" --release
+cd viewlake-agent
+cargo +nightly build --release
 ```
-[read about specified compiler flags](https://github.com/johnthagen/min-sized-rust)
-
-# Cargo.toml profile:
-``` toml
-[profile.release]
-opt-level = "z"
-lto = true
-codegen-units = 1
-strip = true
+## Server
+```bash
+cd viewlake-srv
+cargo +nightly build --release
 ```
+[read about specified at .cargo directory compiler flags](https://github.com/johnthagen/min-sized-rust)
