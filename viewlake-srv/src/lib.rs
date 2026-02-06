@@ -30,16 +30,16 @@ pub async fn run(addr: &str, cert: &str, key: &str) -> Result<(), std::io::Error
 }
 
 #[handler]
-async fn hello(body: Body) -> poem::Result<()> {
+async fn hello(body: Body) -> poem::Result<StatusCode> {
     let bytes = body.into_bytes().await?;
 
     info!("got initial message, agent id: {:?}", bytes);
 
-    Ok(())
+    Ok(StatusCode::OK)
 }
 
 #[handler]
-async fn sysinfo(body: Body) -> poem::Result<()> {
+async fn sysinfo(body: Body) -> poem::Result<StatusCode> {
     let bytes = body.into_bytes().await?;
 
     let fingerprint: SystemFingerprint = match postcard::from_bytes(&bytes) {
@@ -55,7 +55,5 @@ async fn sysinfo(body: Body) -> poem::Result<()> {
         fingerprint.network.hostname
     );
 
-    debug!("got sysinfo: {:?}", bytes);
-
-    Ok(())
+    Ok(StatusCode::OK)
 }
