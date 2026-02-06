@@ -10,7 +10,7 @@ use windows::core::{Error, PCWSTR, PWSTR};
 #[derive(Deserialize, Serialize)]
 pub struct NetworkInfo {
     pub hostname: Option<String>,
-    pub domain_or_workgroup: String,
+    pub domain_or_workgroup: Vec<u16>,
     pub status: String,
     pub adapters: Option<Vec<Adapter>>,
 }
@@ -30,7 +30,7 @@ impl NetworkInfo {
         Ok(NetworkInfo {
             hostname: Self::hostname().ok(),
             domain_or_workgroup,
-            status,
+            status: status.to_string(),
             adapters: Self::adapters_info().ok(),
         })
     }
@@ -51,7 +51,7 @@ impl NetworkInfo {
         }
     }
 
-    fn domain_or_workgroup() -> Result<(String, String), Error> {
+    fn domain_or_workgroup() -> Result<(Vec<u16>, &'static str), Error> {
         unsafe {
             let mut buffer = PWSTR::null();
             let mut status_result = NETSETUP_JOIN_STATUS::default();
@@ -71,19 +71,18 @@ impl NetworkInfo {
                     len += 1;
                 }
 
-                let slice = std::slice::from_raw_parts(buffer.0, len);
-                String::from_utf16_lossy(slice)
+                Vec::from_raw_parts(buffer.0, len, 512)
             } else {
-                String::new()
+                Vec::new()
             };
 
             NetApiBufferFree(Some(buffer.0 as _));
 
             let status = match status_result {
-                NetSetupUnjoined => "Unjoined".to_string(),
-                NetSetupWorkgroupName => "Joined to Workgroup".to_string(),
-                NetSetupDomainName => "Joined to Domain".to_string(),
-                _ => "Unknown".to_string(),
+                NetSetupUnjoined => "Unjoined",
+                NetSetupWorkgroupName => "Joined to Workgroup",
+                NetSetupDomainName => "Joined to Domain",
+                _ => "Unknown",
             };
 
             Ok((domain_or_workgroup, status))

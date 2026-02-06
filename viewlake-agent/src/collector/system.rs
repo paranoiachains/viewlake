@@ -9,8 +9,15 @@ use windows::core::Error;
 #[derive(Deserialize, Serialize)]
 pub struct SystemInfo {
     pub arch: String,
-    pub product_type: String,
-    pub version: String,
+    pub product_type: u8,
+    pub version: Version,
+}
+
+#[derive(Deserialize, Serialize)]
+pub struct Version {
+    pub major_version: u32,
+    pub minor_version: u32,
+    pub build_number: u32,
 }
 
 impl SystemInfo {
@@ -25,12 +32,12 @@ impl SystemInfo {
 
         Ok(SystemInfo {
             arch: arch.to_string(),
-            product_type: product_type.to_string(),
+            product_type,
             version,
         })
     }
 
-    fn os() -> windows::core::Result<(&'static str, String)> {
+    fn os() -> windows::core::Result<(u8, Version)> {
         unsafe {
             let mut os_version = std::mem::MaybeUninit::<OSVERSIONINFOEXW>::zeroed();
             let os_version_ptr = os_version.as_mut_ptr();
@@ -41,21 +48,14 @@ impl SystemInfo {
             if ntstatus == STATUS_SUCCESS {
                 let os_version = os_version.assume_init();
 
-                let product_type = match os_version.wProductType as u32 {
-                    windows::Win32::System::SystemServices::VER_NT_WORKSTATION => "Workstation",
-                    windows::Win32::System::SystemServices::VER_NT_SERVER => "Server",
-                    windows::Win32::System::SystemServices::VER_NT_DOMAIN_CONTROLLER => {
-                        "Domain Controller"
-                    }
-                    _ => "Unknown",
-                };
-
-                let version = format!(
-                    "{}.{}.{}",
-                    os_version.dwMajorVersion, os_version.dwMinorVersion, os_version.dwBuildNumber
-                );
-
-                Ok((product_type, version))
+                Ok((
+                    os_version.wProductType,
+                    Version {
+                        major_version: os_version.dwMajorVersion,
+                        minor_version: os_version.dwMinorVersion,
+                        build_number: os_version.dwBuildNumber,
+                    },
+                ))
             } else {
                 Err(Error::from_win32())
             }
@@ -75,8 +75,13 @@ impl Architecture {
             let mut sysinfo = std::mem::MaybeUninit::<SYSTEM_INFO>::zeroed();
             GetNativeSystemInfo(sysinfo.as_mut_ptr());
 
-            let sysinfo = sysinfo.assume_init();
-            match sysinfo.Anonymous.Anonymous.wProcessorArchitecture.0 {
+            match sysinfo
+                .assume_init()
+                .Anonymous
+                .Anonymous
+                .wProcessorArchitecture
+                .0
+            {
                 9 => Architecture::AMD64,
                 12 => Architecture::ARM64,
                 _ => Architecture::Unknown,

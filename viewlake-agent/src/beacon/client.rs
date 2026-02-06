@@ -60,8 +60,8 @@ pub struct Request<'a> {
 
 pub struct Response {
     pub status_code: u32,
-    pub headers: String,
-    pub body: String,
+    pub headers: Vec<u16>,
+    pub body: Vec<u8>,
 }
 
 impl Response {
@@ -85,8 +85,8 @@ impl Response {
 
         Ok(Response {
             status_code,
-            headers: String::from_utf16_lossy(&headers_buf),
-            body: String::from_utf8(body)?.to_string(),
+            headers: headers_buf,
+            body,
         })
     }
 }

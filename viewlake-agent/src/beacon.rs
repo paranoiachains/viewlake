@@ -51,8 +51,8 @@ impl Beacon {
 
         let resp = self.client.request(req)?;
 
-        info!("response body: {}", resp.body);
-        info!("response headers: {}", resp.headers);
+        info!("response body: {:?}", resp.body);
+        info!("response headers: {:?}", resp.headers);
 
         Ok(())
     }
@@ -83,8 +83,8 @@ impl Beacon {
 
         let resp = self.client.request(req)?;
 
-        info!("response body: {}", resp.body);
-        info!("response headers: {}", resp.headers);
+        info!("response body: {:?}", resp.body);
+        info!("response headers: {:?}", resp.headers);
 
         Ok(())
     }
