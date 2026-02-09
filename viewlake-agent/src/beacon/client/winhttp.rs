@@ -74,6 +74,7 @@ pub struct WinHttpConnection {
     pub handle: WinHttpHandle,
     pub hostname: HSTRING,
     pub port: u16,
+    session: WinHttpSession,
 }
 
 impl WinHttpConnection {
@@ -99,6 +100,7 @@ impl WinHttpConnection {
                     handle: WinHttpHandle(Some(handle)),
                     hostname,
                     port,
+                    session,
                 })
             }
         }
