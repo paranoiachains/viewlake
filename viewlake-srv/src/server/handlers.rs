@@ -31,3 +31,8 @@ pub async fn sysinfo(body: poem::Body) -> poem::Result<http::StatusCode> {
 
     Ok(http::StatusCode::OK)
 }
+
+#[handler]
+pub async fn task() -> poem::Result<String> {
+    Ok("idle".to_string())
+}

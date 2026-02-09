@@ -30,6 +30,7 @@ pub fn run(home: SocketAddrV4) -> windows::core::Result<()> {
             }
             Task::Sleep(dur) => std::thread::sleep(dur),
             Task::Kill => std::process::exit(0),
+            Task::Idle => continue,
         }
     }
 }

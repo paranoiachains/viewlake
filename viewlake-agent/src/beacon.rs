@@ -18,6 +18,7 @@ pub enum Task {
     Exec(Vec<u8>),
     Sleep(std::time::Duration),
     Kill,
+    Idle,
 }
 
 pub struct Beacon {
@@ -163,6 +164,7 @@ impl Beacon {
                 Task::Sleep(Duration::from_millis(millis))
             }
             "kill" => Task::Kill,
+            "idle" => Task::Idle,
             other => {
                 debug!("unknown task: {}", other);
                 return Err(windows::core::Error::from_win32());
