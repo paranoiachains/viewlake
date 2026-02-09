@@ -143,8 +143,8 @@ pub struct Request<'a> {
 #[allow(dead_code)]
 pub struct Response {
     pub status_code: u32,
-    pub headers: String,
-    pub body: String,
+    pub headers: Vec<u16>,
+    pub body: Vec<u8>,
 }
 
 impl Response {
@@ -157,6 +157,7 @@ impl Response {
 
         let mut body = Vec::new();
         let mut chunk = vec![0u8; 4096];
+
         loop {
             let read = handle.read_chunk(&mut chunk)?;
             if read == 0 {
@@ -167,8 +168,8 @@ impl Response {
 
         Ok(Response {
             status_code,
-            headers: String::from_utf16_lossy(&headers_buf),
-            body: String::from_utf8_lossy(&body).to_string(),
+            headers: headers_buf,
+            body,
         })
     }
 }
