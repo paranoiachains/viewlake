@@ -68,12 +68,13 @@ impl WinHttpSession {
     }
 }
 
-/// WinHttpConnection uses WinHttpSession to invoke session and stores handle to connection +
-/// target hostname
+/// WinHttpConnection uses WinHttpSession to invoke connection and stores handle to connection +
+/// target hostname + session handle pointer so it is not dropped afterwards
 pub struct WinHttpConnection {
     pub handle: WinHttpHandle,
     pub hostname: HSTRING,
     pub port: u16,
+    #[allow(dead_code)] // session is owned, pointer preserved
     session: WinHttpSession,
 }
 

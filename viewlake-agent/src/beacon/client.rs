@@ -1,7 +1,7 @@
 /// High level API for WinHTTP
 mod winhttp;
 
-use log::{info, warn};
+use log::{debug, info, warn};
 use windows::core::{HSTRING, PCWSTR, h};
 use winhttp::{WinHttpConnection, WinHttpRequest, WinHttpSession};
 
@@ -10,9 +10,11 @@ pub struct Client {
     connection: Option<WinHttpConnection>,
 }
 
-const DEFAULT_AGENT: &HSTRING = h!("DEFAULT_AGENT"); // TODO: randomize user-agent
-const MAX_REQUEST_ATTEMPTS: usize = 3;
-const RETRY_BACKOFF_MS: u64 = 5000;
+const DEFAULT_AGENT: &HSTRING = h!(
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/117.0.0.0 Safari/537.36"
+);
+const MAX_REQUEST_ATTEMPTS: usize = 10;
+const RETRY_BACKOFF_MS: u64 = 15000;
 
 impl Client {
     pub fn new() -> windows::core::Result<Self> {
@@ -118,6 +120,7 @@ impl Client {
                 }
                 continue;
             }
+            debug!("successfully got response!");
             return Response::new(request_handle);
         }
         Err(last_error.unwrap_or(windows::core::Error::from_win32()))
@@ -137,6 +140,7 @@ pub struct Request<'a> {
     pub body: Option<&'a [u8]>,
 }
 
+#[allow(dead_code)]
 pub struct Response {
     pub status_code: u32,
     pub headers: Vec<u16>,

