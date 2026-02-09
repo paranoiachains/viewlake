@@ -26,10 +26,6 @@ impl WinHttpHandle {
             None => Err(Error::from_win32()),
         }
     }
-
-    pub fn is_null(&self) -> bool {
-        self.0.is_none()
-    }
 }
 
 impl Drop for WinHttpHandle {
@@ -78,7 +74,6 @@ pub struct WinHttpConnection {
     pub handle: WinHttpHandle,
     pub hostname: HSTRING,
     pub port: u16,
-    session: WinHttpSession,
 }
 
 impl WinHttpConnection {
@@ -104,7 +99,6 @@ impl WinHttpConnection {
                     handle: WinHttpHandle(Some(handle)),
                     hostname,
                     port,
-                    session,
                 })
             }
         }

@@ -1,8 +1,7 @@
-#![allow(dead_code)]
 /// High level API for WinHTTP
 mod winhttp;
 
-use log::info;
+use log::{info, warn};
 use windows::core::{HSTRING, PCWSTR, h};
 use winhttp::{WinHttpConnection, WinHttpRequest, WinHttpSession};
 
@@ -12,36 +11,116 @@ pub struct Client {
 }
 
 const DEFAULT_AGENT: &HSTRING = h!("DEFAULT_AGENT"); // TODO: randomize user-agent
+const MAX_REQUEST_ATTEMPTS: usize = 3;
+const RETRY_BACKOFF_MS: u64 = 5000;
 
 impl Client {
     pub fn new() -> windows::core::Result<Self> {
         Ok(Client { connection: None })
     }
 
-    /// Sends request.
     pub fn request(&mut self, req: Request) -> windows::core::Result<Response> {
-        let reuse = self
-            .connection
-            .as_ref()
-            .map(|conn| conn.hostname == req.hostname && conn.port == req.port)
-            .unwrap_or(false);
+        let mut last_error = None;
 
-        if !reuse {
-            info!("creating new connection... user-agent is {}", DEFAULT_AGENT);
-            let session = WinHttpSession::new(PCWSTR(DEFAULT_AGENT.as_ptr()))?;
-            self.connection = Some(WinHttpConnection::new(session, req.hostname, req.port)?);
+        for attempt in 1..=MAX_REQUEST_ATTEMPTS {
+            let reuse = self
+                .connection
+                .as_ref()
+                .map(|conn| conn.hostname == req.hostname && conn.port == req.port)
+                .unwrap_or(false);
+
+            if !reuse {
+                info!("creating new connection... user-agent is {}", DEFAULT_AGENT);
+                let session = match WinHttpSession::new(PCWSTR(DEFAULT_AGENT.as_ptr())) {
+                    Ok(session) => session,
+                    Err(err) => {
+                        warn!(
+                            "attempt {}/{}: failed to initialize WinHTTP session: {:?}",
+                            attempt, MAX_REQUEST_ATTEMPTS, err
+                        );
+                        last_error = Some(err);
+                        self.connection = None;
+                        if attempt < MAX_REQUEST_ATTEMPTS {
+                            std::thread::sleep(std::time::Duration::from_millis(RETRY_BACKOFF_MS));
+                        }
+                        continue;
+                    }
+                };
+
+                match WinHttpConnection::new(session, req.hostname.clone(), req.port) {
+                    Ok(connection) => {
+                        self.connection = Some(connection);
+                    }
+                    Err(err) => {
+                        warn!(
+                            "attempt {}/{}: failed to connect to {}:{}: {:?}",
+                            attempt, MAX_REQUEST_ATTEMPTS, req.hostname, req.port, err
+                        );
+                        last_error = Some(err);
+                        self.connection = None;
+                        if attempt < MAX_REQUEST_ATTEMPTS {
+                            std::thread::sleep(std::time::Duration::from_millis(RETRY_BACKOFF_MS));
+                        }
+                        continue;
+                    }
+                }
+            }
+
+            let conn = self.connection.as_ref().unwrap();
+
+            let request_handle = match WinHttpRequest::new(
+                conn,
+                PCWSTR(req.method.as_ptr()),
+                PCWSTR(req.path.as_ptr()),
+            ) {
+                Ok(handle) => handle,
+                Err(e) => {
+                    warn!(
+                        "attempt {}/{}: failed to open request: {:?}",
+                        attempt, MAX_REQUEST_ATTEMPTS, e
+                    );
+                    last_error = Some(e);
+
+                    self.connection = None;
+
+                    if attempt < MAX_REQUEST_ATTEMPTS {
+                        std::thread::sleep(std::time::Duration::from_millis(RETRY_BACKOFF_MS));
+                    }
+                    continue;
+                }
+            };
+
+            if let Err(e) = request_handle.send(req.headers, req.body) {
+                warn!(
+                    "attempt {}/{}: failed to send request: {:?}",
+                    attempt, MAX_REQUEST_ATTEMPTS, e
+                );
+                last_error = Some(e);
+
+                self.connection = None;
+                if attempt < MAX_REQUEST_ATTEMPTS {
+                    std::thread::sleep(std::time::Duration::from_millis(RETRY_BACKOFF_MS));
+                }
+                continue;
+            };
+
+            if let Err(e) = request_handle.receive() {
+                warn!(
+                    "attempt {}/{}: failed to receive response: {:?}",
+                    attempt, MAX_REQUEST_ATTEMPTS, e
+                );
+                last_error = Some(e);
+
+                self.connection = None;
+
+                if attempt < MAX_REQUEST_ATTEMPTS {
+                    std::thread::sleep(std::time::Duration::from_millis(RETRY_BACKOFF_MS));
+                }
+                continue;
+            }
+            return Response::new(request_handle);
         }
-
-        let conn = self.connection.as_ref().unwrap();
-
-        let request_handle =
-            WinHttpRequest::new(conn, PCWSTR(req.method.as_ptr()), PCWSTR(req.path.as_ptr()))?;
-
-        request_handle.send(req.headers, req.body)?;
-
-        request_handle.receive()?;
-
-        Ok(Response::new(request_handle)?)
+        Err(last_error.unwrap_or(windows::core::Error::from_win32()))
     }
 }
 

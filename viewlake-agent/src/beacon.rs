@@ -75,6 +75,7 @@ impl Beacon {
 
         let resp = self.client.request(req)?;
 
+        info!("response status code: {:?}", resp.status_code);
         info!("response body: {:?}", resp.body);
         info!("response headers: {:?}", resp.headers);
 
@@ -107,6 +108,7 @@ impl Beacon {
 
         let resp = self.client.request(req)?;
 
+        info!("response status code: {:?}", resp.status_code);
         info!("response body: {:?}", resp.body);
         info!("response headers: {:?}", resp.headers);
 
