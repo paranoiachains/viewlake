@@ -1,5 +1,7 @@
 use tracing_subscriber::{EnvFilter, fmt};
 
+use viewlake_srv::server;
+
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     init_tracing();
@@ -8,7 +10,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let cert_path = "ssl/cert.pem";
     let key_path = "ssl/key.pem";
 
-    viewlake_srv::run(addr, cert_path, key_path).await?;
+    server::run(addr, cert_path, key_path).await?;
 
     Ok(())
 }
