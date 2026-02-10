@@ -105,7 +105,12 @@ impl Beacon {
         };
 
         let resp = self.client.request(req)?;
+        log::trace!(
+            "client.request() method returned successfully, response status_code: {}",
+            resp.status_code
+        );
 
+        log::trace!("exiting send_system_info() method...");
         Ok(resp)
     }
 
