@@ -149,9 +149,12 @@ pub struct Response {
 
 impl Response {
     pub fn new(handle: WinHttpRequest) -> windows::core::Result<Self> {
+        log::trace!("calling status_code() method on handle");
         let status_code = handle.status_code()?;
+        log::debug!("response status code: {status_code}");
 
         let mut headers_buf = vec![0u16; 4096];
+        log::trace!("calling read_headers() method on handle");
         let read = handle.read_headers(&mut headers_buf)?;
         headers_buf.truncate(read);
 
@@ -161,8 +164,10 @@ impl Response {
         loop {
             let read = handle.read_chunk(&mut chunk)?;
             if read == 0 {
+                log::trace!("end of response body reached");
                 break;
             }
+            log::trace!("read {read} bytes from response");
             body.extend_from_slice(&chunk[..read]);
         }
 
