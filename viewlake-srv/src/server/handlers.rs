@@ -34,5 +34,5 @@ pub async fn sysinfo(body: poem::Body) -> poem::Result<http::StatusCode> {
 
 #[handler]
 pub async fn task() -> &'static str {
-    "idle"
+    "sleep:5"
 }

