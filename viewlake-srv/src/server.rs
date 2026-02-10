@@ -1,5 +1,5 @@
 use poem::{
-    EndpointExt, Route, Server,
+    EndpointExt, Route, Server, get,
     listener::{Listener, RustlsCertificate, RustlsConfig, TcpListener},
     middleware::Tracing,
     post,
@@ -18,7 +18,7 @@ pub async fn run(addr: &str, cert: &str, key: &str) -> Result<(), std::io::Error
     let app = Route::new()
         .at("/api/v1/hello", post(handlers::hello))
         .at("/api/v1/sysinfo", post(handlers::sysinfo))
-        .at("/api/v1/task", post(handlers::task))
+        .at("/api/v1/task", get(handlers::task))
         .with(Tracing);
 
     Server::new(TcpListener::bind(addr).rustls(config))
