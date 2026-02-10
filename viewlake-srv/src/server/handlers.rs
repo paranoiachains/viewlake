@@ -33,6 +33,6 @@ pub async fn sysinfo(body: poem::Body) -> poem::Result<http::StatusCode> {
 }
 
 #[handler]
-pub async fn task() -> poem::Result<String> {
-    Ok("idle".to_string())
+pub async fn task() -> &'static str {
+    "idle"
 }
