@@ -142,7 +142,6 @@ pub struct Request<'a> {
 
 #[allow(dead_code)]
 pub struct Response {
-    handle: WinHttpRequest,
     pub status_code: u32,
     pub headers: Vec<u16>,
     pub body: Vec<u8>,
@@ -168,11 +167,11 @@ impl Response {
                 log::trace!("end of response body reached");
                 break;
             }
+            log::trace!("read {read} bytes from response");
             body.extend_from_slice(&chunk[..read]);
         }
 
         Ok(Response {
-            handle,
             status_code,
             headers: headers_buf,
             body,
