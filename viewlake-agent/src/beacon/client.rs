@@ -153,10 +153,8 @@ impl Response {
         let status_code = handle.status_code()?;
         log::debug!("response status code: {status_code}");
 
-        let mut headers_buf = vec![0u16; 4096];
         log::trace!("calling read_headers() method on handle");
-        let read = handle.read_headers(&mut headers_buf)?;
-        headers_buf.truncate(read);
+        let headers = handle.read_headers()?;
 
         let mut body = Vec::new();
         let mut chunk = vec![0u8; 4096];
@@ -167,13 +165,12 @@ impl Response {
                 log::trace!("end of response body reached");
                 break;
             }
-            log::trace!("read {read} bytes from response");
             body.extend_from_slice(&chunk[..read]);
         }
 
         Ok(Response {
             status_code,
-            headers: headers_buf,
+            headers,
             body,
         })
     }

@@ -245,42 +245,45 @@ impl WinHttpRequest {
         }
     }
 
-    pub fn read_headers<'a>(&self, buf: &'a mut [u16]) -> windows::core::Result<usize> {
+    pub fn read_headers(&self) -> windows::core::Result<Vec<u16>> {
         unsafe {
             let mut size_bytes: u32 = 0;
 
-            // 1. Query required size (in BYTES)
-            WinHttp::WinHttpQueryHeaders(
+            let res = WinHttp::WinHttpQueryHeaders(
                 self.handle.ok_or_else()?,
                 WinHttp::WINHTTP_QUERY_RAW_HEADERS,
                 PCWSTR::null(),
                 None,
                 &mut size_bytes,
                 std::ptr::null_mut(),
-            )
-            .ok(); // expected to fail with ERROR_INSUFFICIENT_BUFFER
+            );
 
-            let required_u16 = (size_bytes as usize) / 2;
-
-            if buf.len() < required_u16 {
+            if res.is_ok()
+                || Error::from_win32().code()
+                    != windows::core::HRESULT::from_win32(
+                        windows::Win32::Foundation::ERROR_INSUFFICIENT_BUFFER.0,
+                    )
+            {
                 return Err(Error::from_win32());
             }
 
-            // 2. Fetch headers into caller buffer
-            let mut size_bytes = (buf.len() * 2) as u32;
+            let mut buf = vec![0u8; size_bytes as usize];
 
             WinHttp::WinHttpQueryHeaders(
                 self.handle.ok_or_else()?,
                 WinHttp::WINHTTP_QUERY_RAW_HEADERS,
                 PCWSTR::null(),
-                Some(buf.as_mut_ptr() as *mut c_void),
+                Some(buf.as_mut_ptr().cast()),
                 &mut size_bytes,
                 std::ptr::null_mut(),
             )?;
 
-            let written_u16 = (size_bytes as usize) / 2;
+            let headers = buf
+                .chunks_exact(2)
+                .map(|c| u16::from_le_bytes([c[0], c[1]]))
+                .collect();
 
-            Ok(written_u16)
+            Ok(headers)
         }
     }
 }
