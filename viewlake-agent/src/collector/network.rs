@@ -10,7 +10,7 @@ use windows::core::{Error, PCWSTR, PWSTR};
 #[derive(Deserialize, Serialize)]
 pub struct NetworkInfo {
     pub hostname: Option<String>,
-    pub domain_or_workgroup: Vec<u16>,
+    pub domain_or_workgroup: String,
     pub status: String,
     pub adapters: Option<Vec<Adapter>>,
 }
@@ -51,7 +51,7 @@ impl NetworkInfo {
         }
     }
 
-    fn domain_or_workgroup() -> Result<(Vec<u16>, &'static str), Error> {
+    fn domain_or_workgroup() -> Result<(String, &'static str), Error> {
         unsafe {
             let mut buffer = PWSTR::null();
             let mut status_result = NETSETUP_JOIN_STATUS::default();
@@ -71,9 +71,10 @@ impl NetworkInfo {
                     len += 1;
                 }
 
-                Vec::from_raw_parts(buffer.0, len, 512)
+                let slice = std::slice::from_raw_parts(buffer.0, len);
+                String::from_utf16_lossy(slice)
             } else {
-                Vec::new()
+                String::new()
             };
 
             NetApiBufferFree(Some(buffer.0 as _));
