@@ -139,24 +139,30 @@ impl WinHttpRequest {
 
             debug!("request handle opened successfully");
 
-            let flags: u32 = WinHttp::SECURITY_FLAG_IGNORE_UNKNOWN_CA
-                | WinHttp::SECURITY_FLAG_IGNORE_CERT_CN_INVALID
-                | WinHttp::SECURITY_FLAG_IGNORE_CERT_DATE_INVALID;
-
-            WinHttpSetOption(
-                Some(request),
-                WinHttp::WINHTTP_OPTION_SECURITY_FLAGS,
-                Some(std::slice::from_raw_parts(
-                    &flags as *const u32 as *const u8,
-                    std::mem::size_of::<u32>(),
-                )),
-            )?;
+            Self::set_winhttp_options(request)?;
 
             debug!("http options set");
 
             Ok(Self {
                 handle: WinHttpHandle(Some(request)),
             })
+        }
+    }
+
+    fn set_winhttp_options(handle: *mut c_void) -> windows::core::Result<()> {
+        let flags: u32 = WinHttp::SECURITY_FLAG_IGNORE_UNKNOWN_CA
+            | WinHttp::SECURITY_FLAG_IGNORE_CERT_CN_INVALID
+            | WinHttp::SECURITY_FLAG_IGNORE_CERT_DATE_INVALID;
+
+        unsafe {
+            WinHttpSetOption(
+                Some(handle),
+                WinHttp::WINHTTP_OPTION_SECURITY_FLAGS,
+                Some(std::slice::from_raw_parts(
+                    &flags as *const u32 as *const u8,
+                    std::mem::size_of::<u32>(),
+                )),
+            )
         }
     }
 
@@ -246,27 +252,9 @@ impl WinHttpRequest {
     }
 
     pub fn read_headers(&self) -> windows::core::Result<Vec<u16>> {
+        let mut size_bytes = self.get_resp_headers_size()?;
+
         unsafe {
-            let mut size_bytes: u32 = 0;
-
-            let res = WinHttp::WinHttpQueryHeaders(
-                self.handle.ok_or_else()?,
-                WinHttp::WINHTTP_QUERY_RAW_HEADERS,
-                PCWSTR::null(),
-                None,
-                &mut size_bytes,
-                std::ptr::null_mut(),
-            );
-
-            if res.is_ok()
-                || Error::from_win32().code()
-                    != windows::core::HRESULT::from_win32(
-                        windows::Win32::Foundation::ERROR_INSUFFICIENT_BUFFER.0,
-                    )
-            {
-                return Err(Error::from_win32());
-            }
-
             let mut buf = vec![0u8; size_bytes as usize];
 
             WinHttp::WinHttpQueryHeaders(
@@ -285,5 +273,31 @@ impl WinHttpRequest {
 
             Ok(headers)
         }
+    }
+
+    fn get_resp_headers_size(&self) -> windows::core::Result<u32> {
+        let mut size_bytes: u32 = 0;
+
+        unsafe {
+            let res = WinHttp::WinHttpQueryHeaders(
+                self.handle.ok_or_else()?,
+                WinHttp::WINHTTP_QUERY_RAW_HEADERS,
+                PCWSTR::null(),
+                None,
+                &mut size_bytes,
+                std::ptr::null_mut(),
+            );
+
+            if res.is_ok()
+                || Error::from_win32().code()
+                    != windows::core::HRESULT::from_win32(
+                        windows::Win32::Foundation::ERROR_INSUFFICIENT_BUFFER.0,
+                    )
+            {
+                return Err(Error::from_win32());
+            }
+        }
+
+        Ok(size_bytes)
     }
 }
